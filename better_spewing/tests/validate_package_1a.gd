@@ -19,6 +19,7 @@ var failed := 0
 
 func _init() -> void:
 	_test_versions_and_tuning()
+	_test_all_tuning_boundaries()
 	_test_command_frame_contract()
 	_test_ledger_and_stable_ids()
 	_test_schema_audit()
@@ -55,11 +56,97 @@ func _test_versions_and_tuning() -> void:
 	float_tuning.spew_rate_qps = 448.0
 	_check("must be integer" in Tuning.validate(float_tuning), "floating-point tuning is rejected")
 	var invalid_thresholds: Dictionary = Tuning.VALUES.duplicate(true)
-	invalid_thresholds.swim_exit_permille = invalid_thresholds.swim_entry_permille
+	invalid_thresholds.swim_entry_permille = 500
+	invalid_thresholds.swim_exit_permille = 500
 	_check("below entry" in Tuning.validate(invalid_thresholds), "invalid threshold ordering is rejected")
 	var invalid_recoil: Dictionary = Tuning.VALUES.duplicate(true)
 	invalid_recoil.recoil_subpixel_denominator = 0
 	_check("denominator" in Tuning.validate(invalid_recoil), "zero recoil denominator is rejected")
+
+
+func _test_all_tuning_boundaries() -> void:
+	var covered_fields := {}
+	for field in Tuning.LOCKED_VALUES:
+		covered_fields[field] = true
+		var locked_value: int = Tuning.LOCKED_VALUES[field]
+		_check(Tuning.validate_locked_field(field, locked_value).is_empty(), "%s locked value accepts exact boundary" % field)
+		var below: Dictionary = Tuning.VALUES.duplicate(true)
+		below[field] = locked_value - 1
+		_check(not Tuning.validate(below).is_empty(), "%s rejects below locked value" % field)
+		var above: Dictionary = Tuning.VALUES.duplicate(true)
+		above[field] = locked_value + 1
+		_check(not Tuning.validate(above).is_empty(), "%s rejects above locked value" % field)
+
+	for field in Tuning.RANGE_BOUNDS:
+		covered_fields[field] = true
+		var bounds: Array = Tuning.RANGE_BOUNDS[field]
+		var minimum: int = bounds[0]
+		var maximum: int = bounds[1]
+		_check(Tuning.validate_field_range(field, minimum).is_empty(), "%s accepts permitted minimum" % field)
+		_check(Tuning.validate_field_range(field, maximum).is_empty(), "%s accepts permitted maximum" % field)
+		_check(not Tuning.validate_field_range(field, minimum - 1).is_empty(), "%s helper rejects below minimum" % field)
+		_check(not Tuning.validate_field_range(field, maximum + 1).is_empty(), "%s helper rejects above maximum" % field)
+		var below: Dictionary = Tuning.VALUES.duplicate(true)
+		below[field] = minimum - 1
+		_check(not Tuning.validate(below).is_empty(), "%s full validation rejects below minimum" % field)
+		var above: Dictionary = Tuning.VALUES.duplicate(true)
+		above[field] = maximum + 1
+		_check(not Tuning.validate(above).is_empty(), "%s full validation rejects above maximum" % field)
+
+	covered_fields.grid_width_cells = true
+	covered_fields.grid_height_cells = true
+	for cell_size in [8, 16]:
+		var derived: Dictionary = Tuning.VALUES.duplicate(true)
+		derived.grid_cell_size_px = cell_size
+		var dimensions := Tuning.derived_grid_dimensions(cell_size)
+		derived.grid_width_cells = dimensions.x
+		derived.grid_height_cells = dimensions.y
+		_check(Tuning.validate(derived).is_empty(), "derived grid dimensions validate at cell-size boundary %d" % cell_size)
+	var bad_width: Dictionary = Tuning.VALUES.duplicate(true)
+	bad_width.grid_width_cells += 1
+	_check("grid_width_cells" in Tuning.validate(bad_width), "non-derived grid width is rejected")
+	var bad_height: Dictionary = Tuning.VALUES.duplicate(true)
+	bad_height.grid_height_cells += 1
+	_check("grid_height_cells" in Tuning.validate(bad_height), "non-derived grid height is rejected")
+
+	covered_fields.recoil_subpixel_numerator_per_s_per_q = true
+	covered_fields.recoil_subpixel_denominator = true
+	_check(Tuning.validate_recoil_ratio(1024, 5).is_empty(), "recoil accepts exact 0.8 minimum")
+	_check(Tuning.validate_recoil_ratio(2048, 5).is_empty(), "recoil accepts exact 1.6 maximum")
+	_check(not Tuning.validate_recoil_ratio(1023, 5).is_empty(), "recoil rejects below 0.8")
+	_check(not Tuning.validate_recoil_ratio(2049, 5).is_empty(), "recoil rejects above 1.6")
+	var low_recoil: Dictionary = Tuning.VALUES.duplicate(true)
+	low_recoil.recoil_subpixel_numerator_per_s_per_q = 1023
+	_check(not Tuning.validate(low_recoil).is_empty(), "full validation rejects low rational recoil")
+	var high_recoil: Dictionary = Tuning.VALUES.duplicate(true)
+	high_recoil.recoil_subpixel_numerator_per_s_per_q = 2049
+	_check(not Tuning.validate(high_recoil).is_empty(), "full validation rejects high rational recoil")
+
+	_check(covered_fields.size() == Tuning.FIELD_ORDER.size(), "validation coverage count matches every tuning field")
+	for field in Tuning.FIELD_ORDER:
+		_check(covered_fields.has(field), "validation coverage includes %s" % field)
+
+	var inverted_suction: Dictionary = Tuning.VALUES.duplicate(true)
+	inverted_suction.suction_travel_min_ticks = 20
+	inverted_suction.suction_travel_max_ticks = 10
+	_check("inverted" in Tuning.validate(inverted_suction), "suction travel ordering is enforced")
+	var equal_swim: Dictionary = Tuning.VALUES.duplicate(true)
+	equal_swim.swim_entry_permille = 500
+	equal_swim.swim_exit_permille = 500
+	_check("below entry" in Tuning.validate(equal_swim), "swim threshold ordering is enforced")
+	var equal_spikes: Dictionary = Tuning.VALUES.duplicate(true)
+	equal_spikes.spike_unsafe_depth_px = equal_spikes.spike_safe_depth_px
+	_check("below safe" in Tuning.validate(equal_spikes), "spike depth ordering is enforced")
+	var unauthorized_hud: Dictionary = Tuning.VALUES.duplicate(true)
+	unauthorized_hud.hud_unit_q = 20
+	unauthorized_hud.cell_capacity_q = 20
+	_check("locked to 16" in Tuning.validate(unauthorized_hud), "HUD remains locked even when cell capacity matches")
+	var unauthorized_spew: Dictionary = Tuning.VALUES.duplicate(true)
+	unauthorized_spew.spew_rate_qps = 1
+	_check(not Tuning.validate(unauthorized_spew).is_empty(), "spew rate 1 is rejected")
+	var unauthorized_lifetime: Dictionary = Tuning.VALUES.duplicate(true)
+	unauthorized_lifetime.packet_lifetime_ticks = 1
+	_check(not Tuning.validate(unauthorized_lifetime).is_empty(), "packet lifetime 1 is rejected")
 
 
 func _test_command_frame_contract() -> void:
