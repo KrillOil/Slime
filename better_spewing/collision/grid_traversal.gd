@@ -14,6 +14,7 @@ static func sweep(start_fp: Vector2i, end_fp: Vector2i, tick: int, context: Dict
 		return _result("invalid_start_solid", start_fp, start_cell, Vector2i.ZERO, [start_cell])
 	var visited: Array[Vector2i] = [start_cell]
 	var current := start_cell
+	var end_cell := _cell_for_position(end_fp)
 	var delta := end_fp - start_fp
 	if delta == Vector2i.ZERO:
 		return _result("clear", end_fp, current, Vector2i.ZERO, visited)
@@ -25,10 +26,16 @@ static func sweep(start_fp: Vector2i, end_fp: Vector2i, tick: int, context: Dict
 	for unused in maximum_steps:
 		var x_cross := _next_x_crossing(start_fp, current, step_x, abs_dx)
 		var y_cross := _next_y_crossing(start_fp, current, step_y, abs_dy)
-		var x_available: bool = step_x != 0 and x_cross.numerator <= x_cross.denominator
-		var y_available: bool = step_y != 0 and y_cross.numerator <= y_cross.denominator
+		var x_available: bool = step_x != 0 and (
+			x_cross.numerator < x_cross.denominator
+			or (x_cross.numerator == x_cross.denominator and current.x != end_cell.x)
+		)
+		var y_available: bool = step_y != 0 and (
+			y_cross.numerator < y_cross.denominator
+			or (y_cross.numerator == y_cross.denominator and current.y != end_cell.y)
+		)
 		if not x_available and not y_available:
-			return _result("clear", end_fp, _cell_for_position(end_fp), Vector2i.ZERO, visited)
+			return _result("clear", end_fp, end_cell, Vector2i.ZERO, visited)
 		var cross_vertical := false
 		if x_available and not y_available:
 			cross_vertical = true
@@ -57,6 +64,12 @@ static func sweep(start_fp: Vector2i, end_fp: Vector2i, tick: int, context: Dict
 			bounds_result.exit_cell = current
 			return bounds_result
 		if RoomOccupancy.is_solid(context, current.x, current.y):
+			# The exact mathematical boundary belongs to the newly entered cell
+			# for positive crossings. Canonical contact instead stores the closest
+			# representable subpixel inside the preceding non-solid cell. Clamp
+			# both axes so exact-corner ties cannot leave the other coordinate in
+			# an adjacent cell.
+			contact = _clamp_to_cell(contact, previous)
 			var collision := _result("collision", contact, previous, normal, visited)
 			collision.solid_cell = current
 			collision.impact_cell_id = previous.y * context.width_cells + previous.x
@@ -114,6 +127,15 @@ static func _point_at_fraction(start: Vector2i, delta: Vector2i, numerator: int,
 
 static func _cell_for_position(position_fp: Vector2i) -> Vector2i:
 	return Vector2i(_floor_div(position_fp.x, CELL_SIZE_FP), _floor_div(position_fp.y, CELL_SIZE_FP))
+
+
+static func _clamp_to_cell(position_fp: Vector2i, cell: Vector2i) -> Vector2i:
+	var minimum := cell * CELL_SIZE_FP
+	var maximum := (cell + Vector2i.ONE) * CELL_SIZE_FP - Vector2i.ONE
+	return Vector2i(
+		clampi(position_fp.x, minimum.x, maximum.x),
+		clampi(position_fp.y, minimum.y, maximum.y)
+	)
 
 
 static func _in_bounds(cell: Vector2i, context: Dictionary) -> bool:

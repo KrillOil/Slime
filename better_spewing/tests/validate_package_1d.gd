@@ -44,6 +44,7 @@ func _test_room_canonicalization_and_hashes() -> void:
 		],
 	})
 	_check(room.ok, "room definition canonicalizes valid authored Rect2 solids")
+	_check(RoomOccupancy.validate_context(room).is_empty(), "canonical room build validates by decoding and re-deriving its occupancy")
 	_check(room.integer_rects == [
 		{"left": -5, "top": -4, "right": 2, "bottom": 2},
 		{"left": 9, "top": 9, "right": 11, "bottom": 11},
@@ -97,6 +98,18 @@ func _test_immutable_binding_and_rejection() -> void:
 	var bad_tuning: Dictionary = context.duplicate(true)
 	bad_tuning.tuning_hash[0] ^= 1
 	_check("tuning" in RoomOccupancy.validate_context(bad_tuning), "canonical tuning hash mismatch is rejected")
+	var forged := _empty_context("forged-empty-room")
+	forged.bitset[0] = 1
+	forged.occupancy_bytes[48] = 1
+	forged.occupancy_hash = _sha256(forged.occupancy_bytes)
+	_check("contradicts encoded room geometry" in RoomOccupancy.validate_context(forged), "self-consistent GOM1 forged solid mask is rejected when GRD1 encodes zero rectangles")
+	var trailing := _empty_context("malformed-trailing-room")
+	trailing.room_bytes.append(0)
+	trailing.room_hash = _sha256(trailing.room_bytes)
+	for index in 32:
+		trailing.occupancy_bytes[12 + index] = trailing.room_hash[index]
+	trailing.occupancy_hash = _sha256(trailing.occupancy_bytes)
+	_check("truncated or trailing" in RoomOccupancy.validate_context(trailing), "trailing GRD1 room data is structurally rejected even with recomputed hashes")
 	var runner := Runner.new(mismatched, context)
 	var rejected := runner.step_frame(_frame(runner.state, Contracts.GooAction.NONE, 0))
 	_check(not rejected.ok and "immutable input mismatch" in rejected.error, "runner rejects immutable-input mismatch before simulation")
@@ -105,19 +118,25 @@ func _test_immutable_binding_and_rejection() -> void:
 func _test_swept_contacts() -> void:
 	var wall := RoomOccupancy.build({"identifier": "four-way", "solids": [Rect2(50, 50, 10, 10)]})
 	var cases := [
-		[Vector2i(45, 55) * FP, Vector2i(65, 55) * FP, Vector2i(50, 55) * FP, Vector2i(4, 5), Vector2i(-1, 0)],
+		[Vector2i(45, 55) * FP, Vector2i(65, 55) * FP, Vector2i(50 * FP - 1, 55 * FP), Vector2i(4, 5), Vector2i(-1, 0)],
 		[Vector2i(65, 55) * FP, Vector2i(45, 55) * FP, Vector2i(60, 55) * FP, Vector2i(6, 5), Vector2i(1, 0)],
-		[Vector2i(55, 45) * FP, Vector2i(55, 65) * FP, Vector2i(55, 50) * FP, Vector2i(5, 4), Vector2i(0, -1)],
+		[Vector2i(55, 45) * FP, Vector2i(55, 65) * FP, Vector2i(55 * FP, 50 * FP - 1), Vector2i(5, 4), Vector2i(0, -1)],
 		[Vector2i(55, 65) * FP, Vector2i(55, 45) * FP, Vector2i(55, 60) * FP, Vector2i(5, 6), Vector2i(0, 1)],
 	]
 	for index in cases.size():
 		var item: Array = cases[index]
 		var hit := GridTraversal.sweep(item[0], item[1], 0, wall)
+		var maps_to_contact: bool = _cell_for_fp(hit.position_fp) == hit.contact_cell
+		var contact_is_clear: bool = not RoomOccupancy.is_solid(wall, hit.contact_cell.x, hit.contact_cell.y)
+		var mouth_to_contact := GridTraversal.line_of_sight(item[0], hit.position_fp, 0, wall)
+		var contact_through_wall := GridTraversal.line_of_sight(hit.position_fp, item[1], 0, wall)
 		_check(hit.kind == "collision" and hit.position_fp == item[2] and hit.contact_cell == item[3] and hit.normal == item[4], "near-side contact and normal are exact for direction %d" % index)
+		_check(maps_to_contact and contact_is_clear and hit.solid_cell == Vector2i(5, 5), "direction %d committed contact maps to reported non-solid cell before first entered solid" % index)
+		_check(mouth_to_contact.visible and not contact_through_wall.visible and contact_through_wall.trace.kind == "collision", "direction %d stationary contact is a valid LOS candidate and wall beyond blocks" % index)
 	var thin := RoomOccupancy.build({"identifier": "thin", "solids": [Rect2(500, 0, 1, 540)]})
 	var maximum_tick_step: int = Tuning.RANGE_BOUNDS.packet_launch_speed_fp_per_s[1] / Tuning.VALUES.authoritative_hz
 	var fast := GridTraversal.sweep(Vector2i(495, 250) * FP, Vector2i(495 * FP + maximum_tick_step, 250 * FP), 0, thin)
-	_check(fast.kind == "collision" and fast.position_fp.x == 500 * FP, "maximum declared-speed sweep cannot tunnel through a one-pixel wall")
+	_check(fast.kind == "collision" and fast.position_fp.x == 500 * FP - 1, "maximum declared-speed sweep cannot tunnel through a one-pixel wall")
 	var diagonal_wall := RoomOccupancy.build({"identifier": "long-diagonal", "solids": [Rect2(700, 400, 10, 10)]})
 	var diagonal := GridTraversal.sweep(Vector2i(5, 5) * FP, Vector2i(905, 515) * FP, 0, diagonal_wall)
 	_check(diagonal.visited_cells.size() > 80, "long diagonal deterministically visits every crossed cell")
@@ -132,8 +151,23 @@ func _test_corner_ties_and_los() -> void:
 	var finish := Vector2i(35, 35) * FP
 	var even := GridTraversal.sweep(start, finish, 2, corner)
 	var odd := GridTraversal.sweep(start, finish, 3, corner)
-	_check(even.kind == "collision" and even.visited_cells == [Vector2i(1, 1), Vector2i(2, 1)] and even.normal == Vector2i(-1, 0), "even-tick exact tie crosses vertical boundary first")
-	_check(odd.kind == "collision" and odd.visited_cells == [Vector2i(1, 1), Vector2i(1, 2)] and odd.normal == Vector2i(0, -1), "odd-tick exact tie crosses horizontal boundary first")
+	var corner_contact := Vector2i(20 * FP - 1, 20 * FP - 1)
+	_check(even.kind == "collision" and even.visited_cells == [Vector2i(1, 1), Vector2i(2, 1)] and even.normal == Vector2i(-1, 0) and even.position_fp == corner_contact and _cell_for_fp(even.position_fp) == even.contact_cell and not RoomOccupancy.is_solid(corner, even.contact_cell.x, even.contact_cell.y), "even-tick exact tie crosses vertical first and clamps both contact axes into the non-solid cell")
+	_check(odd.kind == "collision" and odd.visited_cells == [Vector2i(1, 1), Vector2i(1, 2)] and odd.normal == Vector2i(0, -1) and odd.position_fp == corner_contact and _cell_for_fp(odd.position_fp) == odd.contact_cell and not RoomOccupancy.is_solid(corner, odd.contact_cell.x, odd.contact_cell.y), "odd-tick exact tie crosses horizontal first and clamps both contact axes into the non-solid cell")
+	var even_contact_los := GridTraversal.line_of_sight(start, even.position_fp, 2, corner)
+	var odd_contact_los := GridTraversal.line_of_sight(start, odd.position_fp, 3, corner)
+	var even_beyond_los := GridTraversal.line_of_sight(even.position_fp, finish, 2, corner)
+	var odd_beyond_los := GridTraversal.line_of_sight(odd.position_fp, finish, 3, corner)
+	_check(even_contact_los.visible and odd_contact_los.visible and not even_beyond_los.visible and not odd_beyond_los.visible, "shared LOS accepts both parity-tied contact candidates and blocks only on the solids beyond")
+	for parity in [0, 1]:
+		var tie_state := _packet_state(start, Vector2i(720 * FP, 720 * FP - Tuning.VALUES.packet_gravity_fp_per_s2 / 60), 1)
+		tie_state.tick = parity
+		var tie_sim := Simulation.new()
+		tie_sim.configure_room(tie_state, corner)
+		var tie_result := tie_sim.integrate_packets(tie_state)
+		var tie_packet: Dictionary = tie_state.packets[0]
+		var expected_normal := Vector2i(-1, 0) if parity == 0 else Vector2i(0, -1)
+		_check(tie_result.ok and Vector2i(tie_packet.position_x_fp, tie_packet.position_y_fp) == corner_contact and Vector2i(tie_packet.impact_normal_x, tie_packet.impact_normal_y) == expected_normal and _cell_for_fp(corner_contact) == Vector2i(1, 1), "real simulation exact tie parity %d commits clamped contact and canonical normal" % parity)
 	var empty := _empty_context("los-empty")
 	var visible := GridTraversal.line_of_sight(Vector2i(5, 5) * FP, Vector2i(955, 535) * FP, 0, empty)
 	_check(visible.visible and visible.visited_cells.size() > 2, "shared traversal reports unobstructed long line of sight")
@@ -177,11 +211,27 @@ func _test_simulation_collision_and_drain() -> void:
 	var result := simulation.integrate_packets(state)
 	var packet: Dictionary = state.packets[0]
 	_check(result.ok and packet.lifecycle == Contracts.PacketLifecycle.STATIONARY_DEPOSITION and packet.stationary_ticks == 1, "collision enters stationary deposition retry state")
-	_check(packet.position_x_fp == 50 * FP and packet.velocity_x_fp_per_s == 0 and packet.velocity_y_fp_per_s == 0, "collision commits exact near-side contact and zero velocity")
+	_check(packet.position_x_fp == 50 * FP - 1 and packet.velocity_x_fp_per_s == 0 and packet.velocity_y_fp_per_s == 0, "collision commits exact discrete near-side contact and zero velocity")
 	_check(packet.impact_cell_id == 5 * 96 + 4 and packet.impact_normal_x == -1 and packet.impact_normal_y == 0, "serialized impact cell and normal retain corner-sensitive contact authority")
+	_check(_cell_for_fp(Vector2i(packet.position_x_fp, packet.position_y_fp)) == Vector2i(4, 5) and not RoomOccupancy.is_solid(wall, 4, 5), "real simulation contact position maps exactly to serialized non-solid impact cell")
 	_check(packet.position_x_remainder == 0 and packet.position_y_remainder == 0 and packet.gravity_remainder == 5, "collision resets position remainders and preserves the computed gravity remainder")
 	_check(state.ledger.airborne == 1 and state.ledger.settled == 0 and state.settled_cells.is_empty(), "impacted volume remains wholly AIRBORNE with no settled state")
 	_check(Serializer.serialize_state_checked(state).ok, "stationary contact packet is canonical and hash-valid")
+	var simulation_cases := [
+		[Vector2i(45, 55) * FP, Vector2i(720, 0) * FP],
+		[Vector2i(65, 55) * FP, Vector2i(-720, 0) * FP],
+		[Vector2i(55, 45) * FP, Vector2i(0, 720) * FP],
+		[Vector2i(55, 65) * FP, Vector2i(0, -720) * FP],
+	]
+	var four_way_wall := RoomOccupancy.build({"identifier": "simulation-four-way", "solids": [Rect2(50, 50, 10, 10)]})
+	for direction in simulation_cases.size():
+		var directional_state := _packet_state(simulation_cases[direction][0], simulation_cases[direction][1], 1)
+		var directional_sim := Simulation.new()
+		directional_sim.configure_room(directional_state, four_way_wall)
+		var directional_result := directional_sim.integrate_packets(directional_state)
+		var directional_packet: Dictionary = directional_state.packets[0]
+		var directional_cell := _cell_for_fp(Vector2i(directional_packet.position_x_fp, directional_packet.position_y_fp))
+		_check(directional_result.ok and directional_packet.lifecycle == Contracts.PacketLifecycle.STATIONARY_DEPOSITION and directional_cell.x + directional_cell.y * 96 == directional_packet.impact_cell_id and not RoomOccupancy.is_solid(four_way_wall, directional_cell.x, directional_cell.y), "real simulation direction %d commits a position consistent with its non-solid impact cell" % direction)
 	var malformed_contact := state.duplicate(true)
 	malformed_contact.packets[0].impact_normal_y = 1
 	_check(not Serializer.serialize_state_checked(malformed_contact).ok, "diagonal serialized impact normal is rejected")
@@ -305,6 +355,23 @@ func _all_zero(bytes: PackedByteArray) -> bool:
 		if byte != 0:
 			return false
 	return true
+
+
+func _cell_for_fp(position: Vector2i) -> Vector2i:
+	return Vector2i(_floor_div(position.x, 10 * FP), _floor_div(position.y, 10 * FP))
+
+
+func _floor_div(value: int, divisor: int) -> int:
+	if value >= 0:
+		return value / divisor
+	return -((-value + divisor - 1) / divisor)
+
+
+func _sha256(bytes: PackedByteArray) -> PackedByteArray:
+	var context := HashingContext.new()
+	context.start(HashingContext.HASH_SHA256)
+	context.update(bytes)
+	return context.finish()
 
 
 func _check(condition: bool, label: String) -> void:
