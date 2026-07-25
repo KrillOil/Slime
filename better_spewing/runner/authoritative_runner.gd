@@ -1,0 +1,75 @@
+extends RefCounted
+
+const Contracts := preload("res://better_spewing/contracts/goo_contracts.gd")
+const Serializer := preload("res://better_spewing/contracts/canonical_serializer.gd")
+const Schema := preload("res://better_spewing/contracts/canonical_state_schema.gd")
+const MouthDerivation := preload("res://better_spewing/runner/mouth_derivation.gd")
+
+const AUTHORITATIVE_HZ := 60
+const MICROSECONDS_PER_SECOND := 1_000_000
+
+var state: Dictionary
+var scheduler_units := 0
+var checkpoint_hashes: Array[String] = []
+
+
+func _init(initial_state: Dictionary = {}) -> void:
+	state = Schema.default_state() if initial_state.is_empty() else initial_state.duplicate(true)
+
+
+func step_from_source(source: Variant) -> Dictionary:
+	var command: Dictionary = source.next_frame(state.tick, state)
+	if not command.ok:
+		return {"ok": false, "error": command.error, "hash": ""}
+	return step_frame(command.frame)
+
+
+func step_frame(frame: Dictionary) -> Dictionary:
+	var error := Contracts.validate_command_frame(frame)
+	if not error.is_empty():
+		return {"ok": false, "error": error, "hash": ""}
+	if frame.tick != state.tick:
+		return {"ok": false, "error": "authoritative tick mismatch", "hash": ""}
+	var mouth := MouthDerivation.derive(state.player)
+	if frame.asserted_mouth_x_fp != mouth.x:
+		return {"ok": false, "error": "authoritative mouth x mismatch", "hash": ""}
+	if frame.asserted_mouth_y_fp != mouth.y:
+		return {"ok": false, "error": "authoritative mouth y mismatch", "hash": ""}
+	if frame.move_x != 0:
+		state.player.facing = frame.move_x
+	state.player.last_valid_aim = frame.aim_angle
+	state.player.current_goo_action = frame.goo_action
+	state.player.action_released = frame.goo_action == Contracts.GooAction.NONE
+	state.command_sampler.last_tick = frame.tick
+	state.command_sampler.last_move_x = frame.move_x
+	state.command_sampler.last_move_y = frame.move_y
+	state.command_sampler.jump_was_down = frame.jump_pressed
+	state.command_sampler.spew_was_down = frame.goo_action == Contracts.GooAction.SPEW
+	state.command_sampler.gulp_was_down = frame.goo_action == Contracts.GooAction.GULP
+	state.command_sampler.resolved_action = frame.goo_action
+	state.command_sampler.last_valid_aim = frame.aim_angle
+	state.command_sampler.facing = state.player.facing
+	state.tick += 1
+	var hash := Serializer.state_hash(state)
+	if hash.is_empty():
+		return {"ok": false, "error": Serializer.validate_state(state), "hash": ""}
+	checkpoint_hashes.append(hash)
+	return {"ok": true, "error": "", "hash": hash}
+
+
+func run_ticks(source: Variant, count: int) -> Dictionary:
+	for unused in count:
+		var result := step_from_source(source)
+		if not result.ok:
+			return result
+	return {"ok": true, "error": "", "hash": Serializer.state_hash(state)}
+
+
+func schedule_elapsed_microseconds(elapsed_us: int, source: Variant) -> Dictionary:
+	if elapsed_us < 0:
+		return {"ok": false, "error": "elapsed microseconds cannot be negative", "ticks": 0}
+	scheduler_units += elapsed_us * AUTHORITATIVE_HZ
+	var ticks := scheduler_units / MICROSECONDS_PER_SECOND
+	scheduler_units %= MICROSECONDS_PER_SECOND
+	var result := run_ticks(source, ticks)
+	return {"ok": result.ok, "error": result.error, "ticks": ticks}
