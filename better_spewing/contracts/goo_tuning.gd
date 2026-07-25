@@ -58,7 +58,7 @@ const VALUES := {
 	"packet_lifetime_ticks": 90,
 	"maximum_packet_volume_q": 16,
 	"maximum_airborne_packets": 192,
-	"fall_transfer_q_per_tick": 16,
+	"fall_transfer_q_per_tick": 12,
 	"lateral_transfer_q_per_tick": 4,
 	"maximum_active_cells_per_tick": 1536,
 	"maximum_lateral_pairs_per_tick": 2048,

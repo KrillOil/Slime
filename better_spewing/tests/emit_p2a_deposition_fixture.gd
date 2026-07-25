@@ -5,18 +5,18 @@ const ReplaySource := preload("res://better_spewing/replay/replay_command_source
 const Runner := preload("res://better_spewing/runner/authoritative_runner.gd")
 const Fixture := preload("res://better_spewing/tests/p2a_fixture_factory.gd")
 
-const EXPECTED_REPLAY_SHA256 := "bd731435f464ef66c46f1fc01d5fd1f0ed4dc1fb516e37f04438b0f6426a14ae"
+const EXPECTED_REPLAY_SHA256 := "b6d07e62c4de520d7be19bb4a5c627bcb5687a67b7ef251c8130263c68e6d746"
 const EXPECTED_CHECKPOINTS: Array[String] = [
-	"e8aa0c3d7b1bf25764beb04e6924c68cc077d4b720b1b4a5973b8df0fb9c2159",
-	"e40c868e79284f8cab090fac9e93cbe3b6c933d12cfc9fcc16c1f0df603c823c",
-	"363aabbda9e8f0ec1936351d913c4f8990440741e59874120eec774f44a0fd33",
-	"93755b687ea2a86591db64f857dcdd7ed3a1537a0c6f20ef2703cb9a6129ea55",
-	"e9cf256d3cf229c2d7bf7cd5d47c63d9f94a45841e0b91f288d45e5b28e6626e",
-	"5825e32d4bc13195214258b39f87cae39fe5c3b43f2e6132e73c83a8d21fde86",
-	"ac1e332c79d1e482245f37a29ada1a11025df8d5b05ae1f3f50c1659b122ffe6",
-	"a26c83e7efa16fe83b51144fd16ff2b7cd7e028ae414cadf07c9d9960e5ffeed",
+	"15ae9f664b69de0615a81754c5130297750ac1b8086434cd4bdb2263972e95db",
+	"1e4ee502857d08b797112440f3a6b8fe70f46f468a270f345df52b13bfd1b4ae",
+	"a6dbd003972cb93cb711cba9b2835d70a5ba9160dfd962a4d8434c864bc5440c",
+	"1de00f46b43a4e6268ed4c67b20abb529ab33173db676941cc6a31be92e061ca",
+	"e95671f127fc1f6ad10617d34b3992f1afe1e60d1642175ff04d496e7ba0ae69",
+	"2b6c1787627eeba9471016be4fff320b1515de29e302d8b51856467c593317b5",
+	"e44fa05320c15e02cfeb52b1b5530a0f5d41f571b7e5ebbe0ba873c0fe4f1acc",
+	"02c6e7eb28b7feebc7f136f5434ab714b72cc7ca2f60912101fff9f9037b0d71",
 ]
-const EXPECTED_FINAL_SHA256 := "a26c83e7efa16fe83b51144fd16ff2b7cd7e028ae414cadf07c9d9960e5ffeed"
+const EXPECTED_FINAL_SHA256 := "02c6e7eb28b7feebc7f136f5434ab714b72cc7ca2f60912101fff9f9037b0d71"
 
 
 func _init() -> void:
@@ -35,26 +35,20 @@ func _init() -> void:
 	var state := ReplayCodec.state_from_header(decoded.header, room.occupancy_hash)
 	var runner := Runner.new(state, room)
 	var source := ReplaySource.new(decoded.frames)
-	var partial_ok := false
+	var flow_ok := false
 	for unused in decoded.frames.size():
 		var result := runner.step_from_source(source)
 		if not result.ok:
 			printerr(result.error)
 			quit(1)
 			return
-		if runner.state.tick == 7:
-			partial_ok = (
-				runner.state.packets.size() == 1
-				and runner.state.packets[0].id == 3
-				and runner.state.packets[0].volume_q == 5
-				and runner.state.packets[0].lifecycle == 1
-			)
+		flow_ok = flow_ok or not runner.state.active_queue.is_empty()
 	var replay_hash := _sha256(bytes)
 	var final_hash := runner.checkpoint_hashes[-1]
 	print("P2A_REPLAY bytes=%d replay_sha256=%s checkpoints=%s final=%s settled_q=%d nonzero_cells=%d partial_retry=%s" % [
 		bytes.size(), replay_hash, ",".join(PackedStringArray(runner.checkpoint_hashes)),
 		final_hash, runner.state.ledger.settled, _nonzero_cells(runner.state.settled_cells),
-		partial_ok,
+		flow_ok,
 	])
 	if not EXPECTED_REPLAY_SHA256.is_empty() and replay_hash != EXPECTED_REPLAY_SHA256:
 		printerr("Package 2A replay byte fixture mismatch")
@@ -66,9 +60,9 @@ func _init() -> void:
 		printerr("Package 2A checkpoint fixture mismatch")
 		quit(1)
 		return
-	if not partial_ok or not runner.state.packets.is_empty() \
-			or runner.state.ledger.settled != 21 or _nonzero_cells(runner.state.settled_cells) != 2:
-		printerr("Package 2A replay did not exercise deterministic saturation retry")
+	if not flow_ok or not runner.state.packets.is_empty() \
+			or runner.state.ledger.settled != 21 or _nonzero_cells(runner.state.settled_cells) != 4:
+		printerr("Package 2A replay did not reconcile conserved deposition into active flow")
 		quit(1)
 		return
 	quit(0)

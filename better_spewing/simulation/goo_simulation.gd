@@ -7,6 +7,7 @@ const MouthDerivation := preload("res://better_spewing/runner/mouth_derivation.g
 const RoomOccupancy := preload("res://better_spewing/collision/room_occupancy.gd")
 const GridTraversal := preload("res://better_spewing/collision/grid_traversal.gd")
 const SettledDeposition := preload("res://better_spewing/deposition/settled_deposition.gd")
+const SettledFlow := preload("res://better_spewing/flow/settled_flow.gd")
 
 const DIRECTION_SCALE := 1_000_000
 const POSITION_DIVISOR := 60
@@ -68,9 +69,19 @@ func step(state: Dictionary, frame: Dictionary) -> Dictionary:
 		emission.ok = false
 		emission.error = deposition.error
 		return emission
+	var flow := {"ok": true, "error": ""}
+	if not room_context.is_empty():
+		flow = SettledFlow.step(state, room_context)
+	if not flow.ok:
+		state.clear()
+		state.merge(simulation_snapshot, true)
+		emission.ok = false
+		emission.error = flow.error
+		return emission
 	emission.ok = true
 	emission.error = ""
 	emission.deposition = deposition
+	emission.flow = flow
 	return emission
 
 

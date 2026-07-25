@@ -273,8 +273,8 @@ static func _validate_cells(state: Dictionary) -> String:
 		if not _is_uint(volume, 16) or volume > Tuning.VALUES.cell_capacity_q:
 			return "settled cell volume is out of range"
 	for counter in state.cell_stable_counters:
-		if not _is_uint(counter, 16):
-			return "cell stable counter must be uint16"
+		if not _is_uint(counter, 16) or counter > 12:
+			return "cell stable counter must be in canonical range 0..12"
 	var seen := {}
 	for cell_id in state.active_queue:
 		if not _is_uint(cell_id, 32) or cell_id >= state.settled_cells.size():
@@ -282,6 +282,26 @@ static func _validate_cells(state: Dictionary) -> String:
 		if seen.has(cell_id):
 			return "active queue contains a duplicate cell ID"
 		seen[cell_id] = true
+		if state.cell_stable_counters[cell_id] >= 12:
+			return "sleeping cell cannot remain in active queue"
+	for cell_id in state.settled_cells.size():
+		var member: bool = (
+			state.active_membership[cell_id / 8] & (1 << (cell_id % 8))
+		) != 0
+		if member != seen.has(cell_id):
+			return "active membership must exactly mirror active queue"
+		if state.settled_cells[cell_id] == 0 and state.cell_stable_counters[cell_id] != 0:
+			return "empty settled cell must have zero stable counter"
+	var used_bits: int = state.settled_cells.size() % 8
+	if used_bits != 0:
+		var tail_mask: int = (0xff << used_bits) & 0xff
+		if (state.active_membership[-1] & tail_mask) != 0:
+			return "active membership unused tail bits must be zero"
+	var settled_sum := 0
+	for volume in state.settled_cells:
+		settled_sum += volume
+	if settled_sum != state.ledger.settled:
+		return "settled cell sum must equal SETTLED ledger category"
 	return ""
 
 

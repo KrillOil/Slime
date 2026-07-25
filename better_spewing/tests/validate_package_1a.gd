@@ -10,7 +10,7 @@ const EXPECTED_ZERO_STATE_SHA256 := "25e1fd9e42241badddddf27570c114b79349aac91b2
 const EXPECTED_SCHEMA_FIELDS := 100
 const EXPECTED_SCHEMA_SHA256 := "2724e5e3baf6ae0ef571a94eb289dc34eedf6797b5d03d42182a8fecd96d6f4c"
 const EXPECTED_TUNING_BYTES := 144
-const EXPECTED_TUNING_SHA256 := "f8a3c2e7a071b5b088da2bc1a32edeae7a7fe9dacd7e0d661457603a6f88bc65"
+const EXPECTED_TUNING_SHA256 := "d8c1a98010b611489e68f6733f121648c92dc2a151cf35ae6ad99b9d62356a7f"
 const EXPECTED_COMMAND_HEX := "04030201ff0101020b0a44332211feffffff"
 
 var passed := 0
@@ -45,6 +45,7 @@ func _test_versions_and_tuning() -> void:
 		all_integer = all_integer and typeof(Tuning.VALUES[field]) == TYPE_INT
 	_check(all_integer, "all tuning values are integers")
 	_check(Tuning.canonical_bytes().size() == EXPECTED_TUNING_BYTES, "tuning fixed-width byte length")
+	print("P1A_TUNING bytes=%d sha256=%s" % [Tuning.canonical_bytes().size(), Tuning.canonical_hash()])
 	_check(Tuning.canonical_hash() == EXPECTED_TUNING_SHA256, "tuning canonical hash fixture")
 	_check(Tuning.canonical_bytes().slice(0, 4).hex_encode() == "01002300", "tuning header is little-endian")
 	_check(

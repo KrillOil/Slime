@@ -3,6 +3,7 @@ extends RefCounted
 const Contracts := preload("res://better_spewing/contracts/goo_contracts.gd")
 const Tuning := preload("res://better_spewing/contracts/goo_tuning.gd")
 const RoomOccupancy := preload("res://better_spewing/collision/room_occupancy.gd")
+const SettledFlow := preload("res://better_spewing/flow/settled_flow.gd")
 
 const GRID_CELL_COUNT := 96 * 54
 const MEMBERSHIP_BYTES := (GRID_CELL_COUNT + 7) / 8
@@ -57,6 +58,7 @@ static func process_stationary_packets(state: Dictionary, context: Dictionary) -
 			state.ledger.airborne -= accepted
 			state.ledger.settled += accepted
 			packet.volume_q -= accepted
+			SettledFlow.activate_cell_and_neighbors(state, context, selected_id)
 		var status := "blocked"
 		if accepted > 0 and packet.volume_q > 0:
 			status = "partial"

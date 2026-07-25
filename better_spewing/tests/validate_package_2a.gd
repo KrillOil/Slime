@@ -187,15 +187,14 @@ func _test_replay_round_trip() -> void:
 	var state := ReplayCodec.state_from_header(decoded.header, room.occupancy_hash)
 	var runner := Runner.new(state, room)
 	var source := ReplaySource.new(decoded.frames)
-	var partial_ok := false
+	var flow_ok := false
 	var invariant_ok := true
 	for unused in decoded.frames.size():
 		var step := runner.step_from_source(source)
 		invariant_ok = invariant_ok and step.ok and _ledger_error(runner.state) == 0 and _max(runner.state.settled_cells) <= CAPACITY
-		if runner.state.tick == 7:
-			partial_ok = runner.state.packets.size() == 1 and runner.state.packets[0].id == 3 and runner.state.packets[0].volume_q == 5
-	_check(invariant_ok and partial_ok, "nontrivial replay conserves every tick and captures same-ID saturation remainder")
-	_check(runner.state.packets.is_empty() and runner.state.ledger.settled == 21 and _nonzero_count(runner.state.settled_cells) == 2, "replay retry completes 21q into two capped cells without duplication")
+		flow_ok = flow_ok or not runner.state.active_queue.is_empty()
+	_check(invariant_ok and flow_ok, "nontrivial replay conserves every tick and hands deposition to canonical active flow")
+	_check(runner.state.packets.is_empty() and runner.state.ledger.settled == 21 and _nonzero_count(runner.state.settled_cells) == 4, "replay completes 21q without duplication while deterministic flow redistributes cells")
 
 
 func _grid_state() -> Dictionary:
