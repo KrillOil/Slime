@@ -5,11 +5,9 @@ const Tuning := preload("res://better_spewing/contracts/goo_tuning.gd")
 const RoomOccupancy := preload("res://better_spewing/collision/room_occupancy.gd")
 const SettledFlow := preload("res://better_spewing/flow/settled_flow.gd")
 
-const GRID_CELL_COUNT := 96 * 54
-const MEMBERSHIP_BYTES := (GRID_CELL_COUNT + 7) / 8
-
-
 static func initialize_grid(state: Dictionary) -> String:
+	var grid_cell_count := _grid_cell_count()
+	var membership_bytes := (grid_cell_count + 7) / 8
 	var all_empty: bool = (
 		state.settled_cells.is_empty()
 		and state.active_queue.is_empty()
@@ -17,19 +15,19 @@ static func initialize_grid(state: Dictionary) -> String:
 		and state.cell_stable_counters.is_empty()
 	)
 	if all_empty:
-		state.settled_cells.resize(GRID_CELL_COUNT)
+		state.settled_cells.resize(grid_cell_count)
 		state.settled_cells.fill(0)
-		state.active_membership.resize(MEMBERSHIP_BYTES)
+		state.active_membership.resize(membership_bytes)
 		state.active_membership.fill(0)
-		state.cell_stable_counters.resize(GRID_CELL_COUNT)
+		state.cell_stable_counters.resize(grid_cell_count)
 		state.cell_stable_counters.fill(0)
 		return ""
-	if state.settled_cells.size() != GRID_CELL_COUNT:
-		return "settled grid must contain exactly %d row-major cells" % GRID_CELL_COUNT
-	if state.cell_stable_counters.size() != GRID_CELL_COUNT:
-		return "settled stable counters must contain exactly %d cells" % GRID_CELL_COUNT
-	if state.active_membership.size() != MEMBERSHIP_BYTES:
-		return "settled active membership must contain exactly %d bytes" % MEMBERSHIP_BYTES
+	if state.settled_cells.size() != grid_cell_count:
+		return "settled grid must contain exactly %d row-major cells" % grid_cell_count
+	if state.cell_stable_counters.size() != grid_cell_count:
+		return "settled stable counters must contain exactly %d cells" % grid_cell_count
+	if state.active_membership.size() != membership_bytes:
+		return "settled active membership must contain exactly %d bytes" % membership_bytes
 	return ""
 
 
@@ -90,7 +88,7 @@ static func derive_candidate_diagnostics(
 	impact_cell_id: int,
 	tick: int
 ) -> Dictionary:
-	if impact_cell_id < 0 or impact_cell_id >= GRID_CELL_COUNT:
+	if impact_cell_id < 0 or impact_cell_id >= _grid_cell_count():
 		return {"ok": false, "error": "impact cell is outside canonical grid", "candidates": []}
 	var impact := Vector2i(
 		impact_cell_id % Tuning.VALUES.grid_width_cells,
@@ -180,3 +178,7 @@ static func _candidate_ids(candidates: Array) -> Array[int]:
 	for candidate in candidates:
 		result.append(candidate.cell_id)
 	return result
+
+
+static func _grid_cell_count() -> int:
+	return Tuning.VALUES.grid_width_cells * Tuning.VALUES.grid_height_cells

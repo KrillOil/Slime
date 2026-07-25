@@ -35,45 +35,92 @@ func _init() -> void:
 		Config.no_action_frame(normal.runner.state)
 	)
 	_check(normal_result.ok and not normal_result.hash.is_empty(), "normal isolated workload uses the authoritative runner")
-	var desktop := _read_json("res://better_spewing/benchmarks/results/desktop_raw.json")
-	var web := _read_json("res://better_spewing/benchmarks/results/web_chrome_raw.json")
-	var evidence := _read_json("res://better_spewing/benchmarks/results/package_2c_evidence.json")
+	var desktop := _read_json("res://better_spewing/benchmarks/results/canonical10_continuous_desktop.json")
+	var web := _read_json("res://better_spewing/benchmarks/results/canonical10_continuous_web_chrome.json")
+	var cell15_desktop := _read_json("res://better_spewing/benchmarks/results/cell15_continuous_desktop.json")
+	var cell15_web := _read_json("res://better_spewing/benchmarks/results/cell15_continuous_web_chrome.json")
+	var ladder := _read_json("res://better_spewing/benchmarks/results/fallback_ladder.json")
+	var evidence := _read_json("res://better_spewing/benchmarks/results/package_2c_evidence_v2.json")
 	_check(
-		not desktop.is_empty() and not web.is_empty() and not evidence.is_empty(),
-		"checked-in desktop, installed-Chrome web, and summary evidence parse"
+		not desktop.is_empty() and not web.is_empty()
+		and not cell15_desktop.is_empty() and not cell15_web.is_empty()
+		and not ladder.is_empty() and not evidence.is_empty(),
+		"corrected continuous, fallback-ladder, and summary evidence parse"
 	)
 	_check(
 		desktop.platform == "desktop"
 		and web.platform == "web"
+		and cell15_desktop.platform == "desktop"
+		and cell15_web.platform == "web"
 		and desktop.measured_seconds >= 120.0
-		and web.measured_seconds >= 120.0,
-		"both platforms retain the required measured duration"
+		and web.measured_seconds >= 120.0
+		and cell15_desktop.measured_seconds >= 120.0
+		and cell15_web.measured_seconds >= 120.0,
+		"canonical and terminal fallback retain 120-second desktop/Web durations"
 	)
 	_check(
-		desktop.raw.stress_tick_us.size() == desktop.sample_count
-		and web.raw.stress_tick_us.size() == web.sample_count,
-		"raw stress samples match the declared sample counts"
+		desktop.continuous_authority and web.continuous_authority
+		and desktop.maximum_authoritative_tick > desktop.measurement_start_tick
+		and web.maximum_authoritative_tick > web.measurement_start_tick
+		and desktop.object_history.size() >= 3 and web.object_history.size() >= 3,
+		"canonical measurements continuously evolve real authoritative ticks"
 	)
 	_check(
-		desktop.stress_lanes_reached and web.stress_lanes_reached
-		and desktop.steady_counts.steady and web.steady_counts.steady,
-		"both measured runs saturate lanes and retain steady authority counts"
+		desktop.raw.stress_simulation_us.size() == desktop.sample_count
+		and desktop.raw.stress_full_runner_us.size() == desktop.sample_count
+		and desktop.raw.stress_checkpoint_hash_us.size() == desktop.sample_count
+		and web.raw.stress_simulation_us.size() == web.sample_count
+		and web.raw.stress_full_runner_us.size() == web.sample_count
+		and web.raw.stress_checkpoint_hash_us.size() == web.sample_count,
+		"core simulation, full runner, and hash samples have separate complete scopes"
 	)
 	_check(
 		desktop.replay_divergence_count == 0
 		and web.replay_divergence_count == 0
+		and desktop.replay_probe_count > 0 and web.replay_probe_count > 0
 		and desktop.ledger_error_count == 0
 		and web.ledger_error_count == 0
 		and desktop.category_error_count == 0
 		and web.category_error_count == 0,
-		"both measured runs retain replay, ledger, and category integrity"
+		"continuous checkpoint-resume probes and conservation remain exact"
+	)
+	_check(
+		desktop.stress_lanes_reached and web.stress_lanes_reached,
+		"canonical continuous runs reach every declared stress lane"
+	)
+	_check(
+		ladder.records.size() == 7
+		and ladder.records[0].variant == "canonical10"
+		and ladder.records[-1].variant == "cell15"
+		and ladder.records[5].grid_cells == 3600
+		and ladder.records[6].grid_cells == 2304
+		and ladder.records.all(func(record): return record.resume_hash_identical and record.replay_round_trip),
+		"ordered fallbacks rebuild 12/15px grids and retain replay/resume determinism"
+	)
+	_check(
+		not cell15_desktop.stress_lanes_reached
+		and not cell15_web.stress_lanes_reached
+		and cell15_web.stress_lanes.lateral_pairs == 822
+		and cell15_web.stress_simulation_ms.p95 > 4.0,
+		"measured 15px terminal fallback fails timing and minimum lateral workload"
 	)
 	_check(
 		not evidence.authoritative
 		and evidence.excluded_from_state_replay_and_hashes
 		and not evidence.fallback_decision.thresholds_passed
-		and not evidence.fallback_decision.authoritative_tuning_changed,
-		"timing evidence remains non-authoritative with its fallback disposition recorded"
+		and not evidence.fallback_decision.authoritative_tuning_accepted,
+		"non-authoritative evidence records rejection of every measured fallback"
+	)
+	var proposal := FileAccess.get_file_as_string(
+		"res://better_spewing/benchmarks/reduced_basin_column_proposal.md"
+	)
+	_check(
+		proposal.contains("Proposed authority and schema")
+		and proposal.contains("Player, immersion, hazard, and suction interfaces")
+		and proposal.contains("Performance hypothesis and budgets")
+		and proposal.contains("Creator decision requested")
+		and proposal.contains("Rollback"),
+		"reduced basin-column proposal covers every required decision surface"
 	)
 	print("P2C_LANES %s" % JSON.stringify(report))
 	print("P2C_BENCHMARK_SUITE passed=%d failed=%d result=%s" % [

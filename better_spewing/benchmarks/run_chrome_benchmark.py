@@ -30,7 +30,7 @@ class ResultHandler(http.server.SimpleHTTPRequestHandler):
         payload = self.rfile.read(length)
         try:
             result = json.loads(payload)
-            if result.get("schema") != "package-2c-flow-benchmark-result-v1":
+            if result.get("schema") != "package-2c-flow-benchmark-result-v2":
                 raise ValueError("unexpected result schema")
             if result.get("platform") != "web":
                 raise ValueError("result did not run on the Web platform")
@@ -66,6 +66,7 @@ def main() -> int:
     parser.add_argument("--profile-root", type=pathlib.Path, required=True)
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--watchdog-seconds", type=int, default=170)
+    parser.add_argument("--variant", default="canonical10")
     args = parser.parse_args()
 
     if not args.chrome.is_file():
@@ -97,7 +98,7 @@ def main() -> int:
         "--disable-renderer-backgrounding",
         "--disable-backgrounding-occluded-windows",
         "--window-size=960,540",
-        f"http://127.0.0.1:{args.port}/index.html",
+        f"http://127.0.0.1:{args.port}/index.html?variant={args.variant}",
     ]
     print("CHROME_COMMAND " + json.dumps(chrome_command), flush=True)
     print(

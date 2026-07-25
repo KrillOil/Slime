@@ -3,17 +3,12 @@ extends RefCounted
 const Tuning := preload("res://better_spewing/contracts/goo_tuning.gd")
 const RoomOccupancy := preload("res://better_spewing/collision/room_occupancy.gd")
 
-const WIDTH := 96
-const HEIGHT := 54
-const CELL_COUNT := WIDTH * HEIGHT
-
-
 static func activate_cells(state: Dictionary, cell_ids: Array) -> void:
 	var additions: Array[int] = []
 	var pending := {}
 	for value in cell_ids:
 		var cell_id: int = value
-		if cell_id < 0 or cell_id >= CELL_COUNT:
+		if cell_id < 0 or cell_id >= _cell_count():
 			continue
 		if _membership_get(state.active_membership, cell_id) or pending.has(cell_id):
 			continue
@@ -70,7 +65,7 @@ static func step(state: Dictionary, context: Dictionary) -> Dictionary:
 		state.tick
 	)
 	var changed_final: Array[int] = []
-	for cell_id in CELL_COUNT:
+	for cell_id in _cell_count():
 		if state.settled_cells[cell_id] != tick_start[cell_id]:
 			changed_final.append(cell_id)
 			state.cell_stable_counters[cell_id] = 0
@@ -156,13 +151,14 @@ static func _phase_a(
 	snapshot: Array
 ) -> Dictionary:
 	var ordered := selected.duplicate()
+	var width := _width()
 	ordered.sort_custom(func(a: int, b: int) -> bool:
-		var ay := a / WIDTH
-		var by := b / WIDTH
-		return ay > by if ay != by else (a % WIDTH) < (b % WIDTH)
+		var ay := a / width
+		var by := b / width
+		return ay > by if ay != by else (a % width) < (b % width)
 	)
 	var delta: Array = []
-	delta.resize(CELL_COUNT)
+	delta.resize(_cell_count())
 	delta.fill(0)
 	var claimed := {}
 	var changed := {}
@@ -171,10 +167,10 @@ static func _phase_a(
 		var volume: int = snapshot[cell_id]
 		if volume == 0:
 			continue
-		var y: int = cell_id / WIDTH
-		if y + 1 >= HEIGHT:
+		var y: int = cell_id / width
+		if y + 1 >= _height():
 			continue
-		var below: int = cell_id + WIDTH
+		var below: int = cell_id + width
 		if _is_solid_id(context, below) or claimed.has(below):
 			continue
 		var free: int = Tuning.VALUES.cell_capacity_q - snapshot[below]
@@ -190,7 +186,7 @@ static func _phase_a(
 		changed[cell_id] = true
 		changed[below] = true
 		moves.append({"source": cell_id, "target": below, "amount_q": amount})
-	for cell_id in CELL_COUNT:
+	for cell_id in _cell_count():
 		if delta[cell_id] != 0:
 			state.settled_cells[cell_id] += delta[cell_id]
 	return {
@@ -207,19 +203,21 @@ static func _phase_b(
 	changed_a: Dictionary,
 	tick: int
 ) -> Dictionary:
+	var width := _width()
+	var height := _height()
 	var snapshot: Array = state.settled_cells.duplicate()
 	var delta: Array = []
-	delta.resize(CELL_COUNT)
+	delta.resize(_cell_count())
 	delta.fill(0)
 	var pair_start := tick % 2
 	var scanned := 0
 	var processed_pairs: Array = []
 	var moves: Array = []
-	for y_offset in HEIGHT:
-		var y := HEIGHT - 1 - y_offset
+	for y_offset in height:
+		var y := height - 1 - y_offset
 		var x := pair_start
-		while x < WIDTH - 1:
-			var left := y * WIDTH + x
+		while x < width - 1:
+			var left := y * width + x
 			var right := left + 1
 			x += 2
 			if _is_solid_id(context, left) or _is_solid_id(context, right):
@@ -251,7 +249,7 @@ static func _phase_b(
 				moves.append({"source": right, "target": left, "amount_q": amount})
 		if scanned >= Tuning.VALUES.maximum_lateral_pairs_per_tick:
 			break
-	for cell_id in CELL_COUNT:
+	for cell_id in _cell_count():
 		if delta[cell_id] != 0:
 			state.settled_cells[cell_id] += delta[cell_id]
 	return {
@@ -262,34 +260,37 @@ static func _phase_b(
 
 
 static func _is_supported(snapshot: Array, context: Dictionary, cell_id: int) -> bool:
-	var y := cell_id / WIDTH
-	if y + 1 >= HEIGHT:
+	var width := _width()
+	var y := cell_id / width
+	if y + 1 >= _height():
 		return true
-	var below := cell_id + WIDTH
+	var below := cell_id + width
 	return _is_solid_id(context, below) \
 		or snapshot[below] >= Tuning.VALUES.cell_capacity_q
 
 
 static func _orthogonal_neighbors(cell_id: int) -> Array[int]:
-	var x := cell_id % WIDTH
-	var y := cell_id / WIDTH
+	var width := _width()
+	var height := _height()
+	var x := cell_id % width
+	var y := cell_id / width
 	var result: Array[int] = []
 	if y > 0:
-		result.append(cell_id - WIDTH)
+		result.append(cell_id - width)
 	if x > 0:
 		result.append(cell_id - 1)
-	if x + 1 < WIDTH:
+	if x + 1 < width:
 		result.append(cell_id + 1)
-	if y + 1 < HEIGHT:
-		result.append(cell_id + WIDTH)
+	if y + 1 < height:
+		result.append(cell_id + width)
 	return result
 
 
 static func _is_solid_id(context: Dictionary, cell_id: int) -> bool:
 	return RoomOccupancy.is_solid(
 		context,
-		cell_id % WIDTH,
-		cell_id / WIDTH
+		cell_id % _width(),
+		cell_id / _width()
 	)
 
 
@@ -307,20 +308,21 @@ static func _membership_set(bytes: PackedByteArray, cell_id: int, value: bool) -
 
 
 static func _validate_runtime_inputs(state: Dictionary, context: Dictionary) -> String:
-	if state.settled_cells.size() != CELL_COUNT \
-			or state.cell_stable_counters.size() != CELL_COUNT \
-			or state.active_membership.size() != (CELL_COUNT + 7) / 8:
+	var cell_count := _cell_count()
+	if state.settled_cells.size() != cell_count \
+			or state.cell_stable_counters.size() != cell_count \
+			or state.active_membership.size() != (cell_count + 7) / 8:
 		return "settled flow requires initialized canonical grid state"
 	if context.is_empty():
 		return "settled flow requires immutable room occupancy"
 	var queued := {}
 	for cell_id in state.active_queue:
-		if cell_id < 0 or cell_id >= CELL_COUNT or queued.has(cell_id):
+		if cell_id < 0 or cell_id >= cell_count or queued.has(cell_id):
 			return "settled flow active FIFO is malformed"
 		if _is_solid_id(context, cell_id):
 			return "solid cell cannot enter settled flow scheduling"
 		queued[cell_id] = true
-	for cell_id in CELL_COUNT:
+	for cell_id in cell_count:
 		var member := _membership_get(state.active_membership, cell_id)
 		if member != queued.has(cell_id):
 			return "settled flow membership does not mirror FIFO"
@@ -337,6 +339,18 @@ static func _sum_cells(cells: Array) -> int:
 	for volume in cells:
 		total += volume
 	return total
+
+
+static func _width() -> int:
+	return Tuning.VALUES.grid_width_cells
+
+
+static func _height() -> int:
+	return Tuning.VALUES.grid_height_cells
+
+
+static func _cell_count() -> int:
+	return _width() * _height()
 
 
 static func _sorted_keys(values: Dictionary) -> Array[int]:

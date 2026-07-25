@@ -3,9 +3,6 @@ extends RefCounted
 const Tuning := preload("res://better_spewing/contracts/goo_tuning.gd")
 const RoomOccupancy := preload("res://better_spewing/collision/room_occupancy.gd")
 
-const CELL_SIZE_FP := 10 * 256
-
-
 static func sweep(start_fp: Vector2i, end_fp: Vector2i, tick: int, context: Dictionary) -> Dictionary:
 	var start_cell := _cell_for_position(start_fp)
 	if not _in_bounds(start_cell, context):
@@ -105,7 +102,8 @@ static func line_of_sight(start_fp: Vector2i, end_fp: Vector2i, tick: int, conte
 static func _next_x_crossing(start_fp: Vector2i, cell: Vector2i, step: int, absolute_delta: int) -> Dictionary:
 	if step == 0:
 		return {"numerator": 1, "denominator": 0, "boundary_fp": 0}
-	var boundary := (cell.x + 1) * CELL_SIZE_FP if step > 0 else cell.x * CELL_SIZE_FP
+	var cell_size_fp := _cell_size_fp()
+	var boundary := (cell.x + 1) * cell_size_fp if step > 0 else cell.x * cell_size_fp
 	var numerator := boundary - start_fp.x if step > 0 else start_fp.x - boundary
 	return {"numerator": numerator, "denominator": absolute_delta, "boundary_fp": boundary}
 
@@ -113,7 +111,8 @@ static func _next_x_crossing(start_fp: Vector2i, cell: Vector2i, step: int, abso
 static func _next_y_crossing(start_fp: Vector2i, cell: Vector2i, step: int, absolute_delta: int) -> Dictionary:
 	if step == 0:
 		return {"numerator": 1, "denominator": 0, "boundary_fp": 0}
-	var boundary := (cell.y + 1) * CELL_SIZE_FP if step > 0 else cell.y * CELL_SIZE_FP
+	var cell_size_fp := _cell_size_fp()
+	var boundary := (cell.y + 1) * cell_size_fp if step > 0 else cell.y * cell_size_fp
 	var numerator := boundary - start_fp.y if step > 0 else start_fp.y - boundary
 	return {"numerator": numerator, "denominator": absolute_delta, "boundary_fp": boundary}
 
@@ -126,12 +125,14 @@ static func _point_at_fraction(start: Vector2i, delta: Vector2i, numerator: int,
 
 
 static func _cell_for_position(position_fp: Vector2i) -> Vector2i:
-	return Vector2i(_floor_div(position_fp.x, CELL_SIZE_FP), _floor_div(position_fp.y, CELL_SIZE_FP))
+	var cell_size_fp := _cell_size_fp()
+	return Vector2i(_floor_div(position_fp.x, cell_size_fp), _floor_div(position_fp.y, cell_size_fp))
 
 
 static func _clamp_to_cell(position_fp: Vector2i, cell: Vector2i) -> Vector2i:
-	var minimum := cell * CELL_SIZE_FP
-	var maximum := (cell + Vector2i.ONE) * CELL_SIZE_FP - Vector2i.ONE
+	var cell_size_fp := _cell_size_fp()
+	var minimum := cell * cell_size_fp
+	var maximum := (cell + Vector2i.ONE) * cell_size_fp - Vector2i.ONE
 	return Vector2i(
 		clampi(position_fp.x, minimum.x, maximum.x),
 		clampi(position_fp.y, minimum.y, maximum.y)
@@ -163,3 +164,7 @@ static func _divide_trunc(numerator: int, denominator: int) -> int:
 	if numerator >= 0:
 		return numerator / denominator
 	return -((-numerator) / denominator)
+
+
+static func _cell_size_fp() -> int:
+	return Tuning.VALUES.grid_cell_size_px * Tuning.SUBPIXELS_PER_PIXEL

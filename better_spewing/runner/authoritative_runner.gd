@@ -15,6 +15,10 @@ var scheduler_units := 0
 var checkpoint_hashes: Array[String] = []
 var simulation: RefCounted
 var initialization_error := ""
+# Non-authoritative Package 2C instrumentation. These wall-clock observations
+# are deliberately outside canonical state and never affect scheduling or hashes.
+var last_simulation_duration_us := 0
+var last_hash_duration_us := 0
 
 
 func _init(initial_state: Dictionary = {}, collision_context: Dictionary = {}) -> void:
@@ -59,11 +63,18 @@ func step_frame(frame: Dictionary) -> Dictionary:
 	state.command_sampler.resolved_action = frame.goo_action
 	state.command_sampler.last_valid_aim = frame.aim_angle
 	state.command_sampler.facing = state.player.facing
+	var simulation_start_us := Time.get_ticks_usec()
 	var simulation_result: Dictionary = simulation.step(state, frame)
+	last_simulation_duration_us = Time.get_ticks_usec() - simulation_start_us
 	if not simulation_result.get("ok", true):
-		return {"ok": false, "error": simulation_result.error, "hash": Serializer.state_hash(state), "simulation": simulation_result}
+		var failure_hash_start_us := Time.get_ticks_usec()
+		var failure_hash := Serializer.state_hash(state)
+		last_hash_duration_us = Time.get_ticks_usec() - failure_hash_start_us
+		return {"ok": false, "error": simulation_result.error, "hash": failure_hash, "simulation": simulation_result}
 	state.tick += 1
+	var hash_start_us := Time.get_ticks_usec()
 	var hash := Serializer.state_hash(state)
+	last_hash_duration_us = Time.get_ticks_usec() - hash_start_us
 	if hash.is_empty():
 		return {"ok": false, "error": Serializer.validate_state(state), "hash": ""}
 	checkpoint_hashes.append(hash)

@@ -1,0 +1,667 @@
+{
+  "authoritative": false,
+  "deferred_not_mocked": [
+    "128 suction jobs",
+    "four coverable hazard spans",
+    "repeated player immersion transitions",
+    "production Rooms 1-4"
+  ],
+  "excluded_from_state_replay_and_hashes": true,
+  "fallback_decision": {
+    "authoritative_tuning_accepted": false,
+    "canonical_tuning_retained": "f8a3c2e7a071b5b088da2bc1a32edeae7a7fe9dacd7e0d661457603a6f88bc65",
+    "reason": "Every declared fallback was executed in order in an isolated project copy with rebuilt tuning, room definition, occupancy, grid state, and replay bytes. The terminal 15px Web run still has simulation p95 156.2ms and p99 171.0ms, and its 64x36 grid can reach only 822 of the permitted minimum 1024 lateral pairs. It therefore fails timing and declared stress semantics.",
+    "terminal_disposition": "Stop before G2/production migration and request the Creator's explicit decision on reduced_basin_column_proposal.md.",
+    "thresholds_passed": false
+  },
+  "fallback_ladder": {
+    "all_profile_processes_exit_zero": true,
+    "all_replays_round_trip": true,
+    "all_resume_hashes_identical": true,
+    "order": [
+      "canonical10",
+      "cosmetics",
+      "lateral1024",
+      "sleep6",
+      "active1024",
+      "cell12",
+      "cell15"
+    ],
+    "records": [
+      {
+        "checkpoint_hash_us": [
+          27583,
+          27900,
+          30121
+        ],
+        "core_simulation_us": [
+          213892,
+          192403,
+          189733
+        ],
+        "full_runner_us": [
+          241500,
+          221575,
+          220684
+        ],
+        "grid_cells": 5184,
+        "lanes_reached": true,
+        "occupancy_hash": "7745695ea20dd9102293cff3788e275ee1edb3d69ff831690ac9dd77188c15b8",
+        "replay_sha256": "73e18c49c8e515b63fb22d9900327b112e28c4261b115f195229b18c5aa62439",
+        "room_hash": "613877e7eaceb5e29ec4e6bed9bfe25fe33d0533e8d97ce1b551c81a9c4fa951",
+        "tuning_hash": "f8a3c2e7a071b5b088da2bc1a32edeae7a7fe9dacd7e0d661457603a6f88bc65",
+        "variant": "canonical10"
+      },
+      {
+        "checkpoint_hash_us": [
+          29596,
+          36156,
+          24294
+        ],
+        "core_simulation_us": [
+          225393,
+          206330,
+          181774
+        ],
+        "full_runner_us": [
+          255020,
+          247777,
+          206800
+        ],
+        "grid_cells": 5184,
+        "lanes_reached": true,
+        "occupancy_hash": "7745695ea20dd9102293cff3788e275ee1edb3d69ff831690ac9dd77188c15b8",
+        "replay_sha256": "73e18c49c8e515b63fb22d9900327b112e28c4261b115f195229b18c5aa62439",
+        "room_hash": "613877e7eaceb5e29ec4e6bed9bfe25fe33d0533e8d97ce1b551c81a9c4fa951",
+        "tuning_hash": "f8a3c2e7a071b5b088da2bc1a32edeae7a7fe9dacd7e0d661457603a6f88bc65",
+        "variant": "cosmetics"
+      },
+      {
+        "checkpoint_hash_us": [
+          30397,
+          26273,
+          24447
+        ],
+        "core_simulation_us": [
+          205233,
+          181037,
+          186913
+        ],
+        "full_runner_us": [
+          235657,
+          208208,
+          212020
+        ],
+        "grid_cells": 5184,
+        "lanes_reached": true,
+        "occupancy_hash": "7745695ea20dd9102293cff3788e275ee1edb3d69ff831690ac9dd77188c15b8",
+        "replay_sha256": "3b342930ba6bbae36e51eff29683837035d525e47cdefca11bc0fe1f18faac22",
+        "room_hash": "613877e7eaceb5e29ec4e6bed9bfe25fe33d0533e8d97ce1b551c81a9c4fa951",
+        "tuning_hash": "d04fa8cd69440e6512259dca10a62067f31fd2d9105b17c6e5cf9ab9603d7dd6",
+        "variant": "lateral1024"
+      },
+      {
+        "checkpoint_hash_us": [
+          26791,
+          24609,
+          24883
+        ],
+        "core_simulation_us": [
+          195223,
+          182074,
+          177855
+        ],
+        "full_runner_us": [
+          222036,
+          207652,
+          203636
+        ],
+        "grid_cells": 5184,
+        "lanes_reached": true,
+        "occupancy_hash": "7745695ea20dd9102293cff3788e275ee1edb3d69ff831690ac9dd77188c15b8",
+        "replay_sha256": "75604c8bee1c295bade8a44c475329fbc3bd58c7b3d80c1968a6173e0437ec08",
+        "room_hash": "613877e7eaceb5e29ec4e6bed9bfe25fe33d0533e8d97ce1b551c81a9c4fa951",
+        "tuning_hash": "0c33b68f61c1aad8665fdb91283511a8231dd56768e7c30be9fa8f9658150295",
+        "variant": "sleep6"
+      },
+      {
+        "checkpoint_hash_us": [
+          23799,
+          26182,
+          23553
+        ],
+        "core_simulation_us": [
+          168766,
+          153979,
+          150590
+        ],
+        "full_runner_us": [
+          192587,
+          181088,
+          174591
+        ],
+        "grid_cells": 5184,
+        "lanes_reached": true,
+        "occupancy_hash": "7745695ea20dd9102293cff3788e275ee1edb3d69ff831690ac9dd77188c15b8",
+        "replay_sha256": "1e8fd6c5df26a41071b940992889e6c98efafd26b45bea5ba97961b2a5faf7a8",
+        "room_hash": "613877e7eaceb5e29ec4e6bed9bfe25fe33d0533e8d97ce1b551c81a9c4fa951",
+        "tuning_hash": "be801c93474be4070dc138416ea1d74e2eb117d14d3d6ca7c1b6c9c9553be3fd",
+        "variant": "active1024"
+      },
+      {
+        "checkpoint_hash_us": [
+          18003,
+          18479,
+          17969
+        ],
+        "core_simulation_us": [
+          149899,
+          148922,
+          145417
+        ],
+        "full_runner_us": [
+          167923,
+          168359,
+          163837
+        ],
+        "grid_cells": 3600,
+        "lanes_reached": true,
+        "occupancy_hash": "d5995c9a69fe57593d20bd33eefbb9d04063d31b0a7a7e923b2e16a7389b5d8b",
+        "replay_sha256": "3b4f5fea53a343fca4d3b10dec4afd48fe3be6a7aa47544c9dc8eabf8d19311f",
+        "room_hash": "71ead9c8902b478e37dee8da813df63189e53cfc70f73877ce7efb83ac1c9b8c",
+        "tuning_hash": "d71378ec0bea9e01a83f715f945abb386bf651e42af5d2a70aa6b621465f6ed0",
+        "variant": "cell12"
+      },
+      {
+        "checkpoint_hash_us": [
+          13718,
+          13150,
+          16229
+        ],
+        "core_simulation_us": [
+          139063,
+          136347,
+          148377
+        ],
+        "full_runner_us": [
+          152801,
+          150115,
+          165138
+        ],
+        "grid_cells": 2304,
+        "lanes_reached": false,
+        "occupancy_hash": "f3514acd8507f4f9d1d12252e49b2bdc7c73b1928ee5513ffc08816ade0a0f61",
+        "replay_sha256": "9e8106357b4a6f7bab50b72a7876ef09ec71e7abad745e4c71bfcfdfd4b19ae5",
+        "room_hash": "6e7bf79e89aa892b8f33a4920970e31b60097b62d1de9833a707761e642a54aa",
+        "tuning_hash": "f87fc2743b237743a2df0ca31d8650c1d4f1d86acfa48667c5c19814b85f4265",
+        "variant": "cell15"
+      }
+    ]
+  },
+  "machine": {
+    "chrome_stable": "150.0.7871.184",
+    "cpu": "AMD Ryzen 5 3600 6-Core Processor",
+    "godot": "4.6.3.stable.official.7d41c59c4",
+    "gpu": "NVIDIA GeForce GTX 1660 SUPER",
+    "gpu_driver_version": "32.0.16.1062",
+    "ram_bytes": 17129467904,
+    "ram_gib": 15.95,
+    "windows_build": "26200.8875",
+    "windows_display_version": "25H2",
+    "windows_product": "Windows 10 Pro"
+  },
+  "measurement_contract": {
+    "chrome_watchdog_seconds": 170,
+    "desktop_export_mode": "debug editor scene",
+    "developer_tools_open": false,
+    "measured_seconds_target": 120,
+    "timing_scopes": {
+      "stress_checkpoint_hash_ms": "canonical validation/serialization/SHA portion",
+      "stress_full_runner_ms": "complete AuthoritativeRunner.step_frame including hash",
+      "stress_simulation_ms": "GooSimulation.step only; Section 18 thresholds apply here",
+      "whole_frame_ms": "wall-clock rendered frame"
+    },
+    "viewport": [
+      960,
+      540
+    ],
+    "warmup_seconds": 10,
+    "web_export_mode": "Godot Web release"
+  },
+  "original_noncontinuous_evidence_retained": {
+    "desktop_raw_sha256": "77e2ee3867883a3ac615140039a6e7647351fe28238c4e4720505a8ea4a5b191",
+    "label": "Package 2C first-return reset microbenchmark; non-continuous and not used for corrected acceptance claims.",
+    "web_raw_sha256": "bebf3d65055f412f7d4b087102f20fd8bc7a6e5426103c308818cdd1c36eb2eb"
+  },
+  "runs": {
+    "canonical10_desktop": {
+      "category_error_count": 0,
+      "continuous_authority": true,
+      "gameplay_affecting_dropped_ticks": 7215,
+      "ledger_error_count": 0,
+      "maximum_authoritative_tick": 588,
+      "measured_authoritative_ticks": 554,
+      "measured_fps": 4.61416709544828,
+      "measured_seconds": 120.065006,
+      "measurement_start_tick": 34,
+      "normal_full_runner_ms_preliminary": {
+        "max": 48.977,
+        "mean": 35.920178700361,
+        "p95": 41.86,
+        "p99": 47.031
+      },
+      "normal_simulation_ms_preliminary": {
+        "max": 33.082,
+        "mean": 22.4873176895307,
+        "p95": 26.251,
+        "p99": 29.102
+      },
+      "occupancy_hash": "7745695ea20dd9102293cff3788e275ee1edb3d69ff831690ac9dd77188c15b8",
+      "platform": "desktop",
+      "replay_divergence_count": 0,
+      "replay_probe_count": 9,
+      "room_hash": "613877e7eaceb5e29ec4e6bed9bfe25fe33d0533e8d97ce1b551c81a9c4fa951",
+      "sample_count": 554,
+      "steady_state": {
+        "constant_owned_object_counts": true,
+        "first": {
+          "active": 3482,
+          "authoritative_tick": 60,
+          "drain_records": 1,
+          "packets": 192,
+          "settled_nonzero": 4056,
+          "state_hash": "767b2f0d84225fb8996ef6fc5be7eb5ba0d5141bbad3ae262e68d92412c63a5d"
+        },
+        "history_samples": 9,
+        "last": {
+          "active": 101,
+          "authoritative_tick": 540,
+          "drain_records": 1,
+          "packets": 192,
+          "settled_nonzero": 3645,
+          "state_hash": "5a754bc073e47dc84d08a293b4d70ae7742432a41bb4b794b4f572a2e6138267"
+        },
+        "late_envelope_not_above_early_envelope": true,
+        "no_increasing_authoritative_counts_after_transient": true,
+        "ticks_strictly_increasing": true
+      },
+      "stress_checkpoint_hash_ms": {
+        "max": 34.581,
+        "mean": 19.5335541516246,
+        "p95": 25.456,
+        "p99": 30.225
+      },
+      "stress_full_runner_ms": {
+        "max": 242.639,
+        "mean": 151.447014440433,
+        "p95": 194.992,
+        "p99": 221.734
+      },
+      "stress_lanes": {
+        "active_after": 4214,
+        "airborne_q": 192,
+        "canonical": true,
+        "category_error": 0,
+        "drain_q": 16,
+        "lateral_pairs": 2048,
+        "ledger_error": 0,
+        "packet_count": 192,
+        "reserve_q": 1600,
+        "selected_cells": 1536,
+        "settled_q": 57392,
+        "sleeping_cells": 100
+      },
+      "stress_lanes_reached": true,
+      "stress_simulation_ms": {
+        "max": 213.046,
+        "mean": 131.875416967509,
+        "p95": 169.926,
+        "p99": 195.212
+      },
+      "thresholds": {
+        "initial_stress_lanes_reached": true,
+        "preliminary_normal_simulation_p95_le_2ms": false,
+        "simulation_max_le_8ms": false,
+        "simulation_p95_le_4ms": false,
+        "simulation_p99_le_6ms": false,
+        "sustained_60_fps": false,
+        "whole_frame_p95_le_16_67ms": false,
+        "zero_category_error": true,
+        "zero_gameplay_affecting_dropped_ticks": false,
+        "zero_ledger_error": true,
+        "zero_replay_divergence": true
+      },
+      "timestamp_utc": "2026-07-25T14:10:35",
+      "tuning_hash": "f8a3c2e7a071b5b088da2bc1a32edeae7a7fe9dacd7e0d661457603a6f88bc65",
+      "variant": "canonical10",
+      "whole_frame_ms": {
+        "max": 471.196,
+        "mean": 217.020310469314,
+        "p95": 280.85,
+        "p99": 355.704
+      }
+    },
+    "canonical10_web_installed_chrome": {
+      "category_error_count": 0,
+      "continuous_authority": true,
+      "gameplay_affecting_dropped_ticks": 7249,
+      "ledger_error_count": 0,
+      "maximum_authoritative_tick": 554,
+      "measured_authoritative_ticks": 524,
+      "measured_fps": 4.3644662482665,
+      "measured_seconds": 120.0605,
+      "measurement_start_tick": 30,
+      "normal_full_runner_ms_preliminary": {
+        "max": 57.1,
+        "mean": 35.3925572519084,
+        "p95": 40.1,
+        "p99": 47.1
+      },
+      "normal_simulation_ms_preliminary": {
+        "max": 36,
+        "mean": 21.6618320610687,
+        "p95": 25.2,
+        "p99": 29
+      },
+      "occupancy_hash": "7745695ea20dd9102293cff3788e275ee1edb3d69ff831690ac9dd77188c15b8",
+      "platform": "web",
+      "replay_divergence_count": 0,
+      "replay_probe_count": 9,
+      "room_hash": "613877e7eaceb5e29ec4e6bed9bfe25fe33d0533e8d97ce1b551c81a9c4fa951",
+      "sample_count": 524,
+      "steady_state": {
+        "constant_owned_object_counts": true,
+        "first": {
+          "active": 3482,
+          "authoritative_tick": 60,
+          "drain_records": 1,
+          "packets": 192,
+          "settled_nonzero": 4056,
+          "state_hash": "767b2f0d84225fb8996ef6fc5be7eb5ba0d5141bbad3ae262e68d92412c63a5d"
+        },
+        "history_samples": 9,
+        "last": {
+          "active": 101,
+          "authoritative_tick": 540,
+          "drain_records": 1,
+          "packets": 192,
+          "settled_nonzero": 3645,
+          "state_hash": "5a754bc073e47dc84d08a293b4d70ae7742432a41bb4b794b4f572a2e6138267"
+        },
+        "late_envelope_not_above_early_envelope": true,
+        "no_increasing_authoritative_counts_after_transient": true,
+        "ticks_strictly_increasing": true
+      },
+      "stress_checkpoint_hash_ms": {
+        "max": 40.2,
+        "mean": 19.6,
+        "p95": 27.1,
+        "p99": 33.4
+      },
+      "stress_full_runner_ms": {
+        "max": 268.9,
+        "mean": 157.081679389313,
+        "p95": 218.1,
+        "p99": 252.2
+      },
+      "stress_lanes": {
+        "active_after": 4214,
+        "airborne_q": 192,
+        "canonical": true,
+        "category_error": 0,
+        "drain_q": 16,
+        "lateral_pairs": 2048,
+        "ledger_error": 0,
+        "packet_count": 192,
+        "reserve_q": 1600,
+        "selected_cells": 1536,
+        "settled_q": 57392,
+        "sleeping_cells": 100
+      },
+      "stress_lanes_reached": true,
+      "stress_simulation_ms": {
+        "max": 237.3,
+        "mean": 137.428435114504,
+        "p95": 189.5,
+        "p99": 219
+      },
+      "thresholds": {
+        "initial_stress_lanes_reached": true,
+        "preliminary_normal_simulation_p95_le_2ms": false,
+        "simulation_max_le_8ms": false,
+        "simulation_p95_le_4ms": false,
+        "simulation_p99_le_6ms": false,
+        "sustained_60_fps": false,
+        "whole_frame_p95_le_16_67ms": false,
+        "zero_category_error": true,
+        "zero_gameplay_affecting_dropped_ticks": false,
+        "zero_ledger_error": true,
+        "zero_replay_divergence": true
+      },
+      "timestamp_utc": "2026-07-25T14:16:13",
+      "tuning_hash": "f8a3c2e7a071b5b088da2bc1a32edeae7a7fe9dacd7e0d661457603a6f88bc65",
+      "variant": "canonical10",
+      "whole_frame_ms": {
+        "max": 570.9,
+        "mean": 229.34141221374,
+        "p95": 319.1,
+        "p99": 375
+      }
+    },
+    "cell15_desktop": {
+      "category_error_count": 0,
+      "continuous_authority": true,
+      "gameplay_affecting_dropped_ticks": 6983,
+      "ledger_error_count": 0,
+      "maximum_authoritative_tick": 818,
+      "measured_authoritative_ticks": 764,
+      "measured_fps": 6.36553376079559,
+      "measured_seconds": 120.021357,
+      "measurement_start_tick": 54,
+      "normal_full_runner_ms_preliminary": {
+        "max": 24.617,
+        "mean": 15.974112565445,
+        "p95": 18.787,
+        "p99": 22.36
+      },
+      "normal_simulation_ms_preliminary": {
+        "max": 15.74,
+        "mean": 9.93539528795812,
+        "p95": 11.936,
+        "p99": 14.034
+      },
+      "occupancy_hash": "f3514acd8507f4f9d1d12252e49b2bdc7c73b1928ee5513ffc08816ade0a0f61",
+      "platform": "desktop",
+      "replay_divergence_count": 0,
+      "replay_probe_count": 13,
+      "room_hash": "6e7bf79e89aa892b8f33a4920970e31b60097b62d1de9833a707761e642a54aa",
+      "sample_count": 764,
+      "steady_state": {
+        "constant_owned_object_counts": true,
+        "first": {
+          "active": 190,
+          "authoritative_tick": 60,
+          "drain_records": 1,
+          "packets": 192,
+          "settled_nonzero": 1568,
+          "state_hash": "affdc9e614a833039014c3d4f6c066732084157389ac6270e2fcdd463b234750"
+        },
+        "history_samples": 13,
+        "last": {
+          "active": 0,
+          "authoritative_tick": 780,
+          "drain_records": 1,
+          "packets": 192,
+          "settled_nonzero": 1561,
+          "state_hash": "0906f0e5327d546864f38581f962576070822a01782f2d53d098afe3df0a3f19"
+        },
+        "late_envelope_not_above_early_envelope": true,
+        "no_increasing_authoritative_counts_after_transient": true,
+        "ticks_strictly_increasing": true
+      },
+      "stress_checkpoint_hash_ms": {
+        "max": 22.605,
+        "mean": 11.4731714659686,
+        "p95": 13.672,
+        "p99": 16.278
+      },
+      "stress_full_runner_ms": {
+        "max": 162.231,
+        "mean": 123.132287958115,
+        "p95": 139.666,
+        "p99": 152.888
+      },
+      "stress_lanes": {
+        "active_after": 1703,
+        "airborne_q": 192,
+        "canonical": true,
+        "category_error": 0,
+        "drain_q": 16,
+        "lateral_pairs": 822,
+        "ledger_error": 0,
+        "packet_count": 192,
+        "reserve_q": 1600,
+        "selected_cells": 1024,
+        "settled_q": 24368,
+        "sleeping_cells": 100
+      },
+      "stress_lanes_reached": false,
+      "stress_simulation_ms": {
+        "max": 146.435,
+        "mean": 111.62322382199,
+        "p95": 126.305,
+        "p99": 137.016
+      },
+      "thresholds": {
+        "initial_stress_lanes_reached": false,
+        "preliminary_normal_simulation_p95_le_2ms": false,
+        "simulation_max_le_8ms": false,
+        "simulation_p95_le_4ms": false,
+        "simulation_p99_le_6ms": false,
+        "sustained_60_fps": false,
+        "whole_frame_p95_le_16_67ms": false,
+        "zero_category_error": true,
+        "zero_gameplay_affecting_dropped_ticks": false,
+        "zero_ledger_error": true,
+        "zero_replay_divergence": true
+      },
+      "timestamp_utc": "2026-07-25T14:12:57",
+      "tuning_hash": "f87fc2743b237743a2df0ca31d8650c1d4f1d86acfa48667c5c19814b85f4265",
+      "variant": "cell15",
+      "whole_frame_ms": {
+        "max": 290.602,
+        "mean": 157.292854712042,
+        "p95": 178.061,
+        "p99": 278.558
+      }
+    },
+    "cell15_web_installed_chrome": {
+      "category_error_count": 0,
+      "continuous_authority": true,
+      "gameplay_affecting_dropped_ticks": 7123,
+      "ledger_error_count": 0,
+      "maximum_authoritative_tick": 681,
+      "measured_authoritative_ticks": 635,
+      "measured_fps": 5.28827335792866,
+      "measured_seconds": 120.077,
+      "measurement_start_tick": 46,
+      "normal_full_runner_ms_preliminary": {
+        "max": 25.6,
+        "mean": 17.3957480314961,
+        "p95": 21.6,
+        "p99": 22.8
+      },
+      "normal_simulation_ms_preliminary": {
+        "max": 14.8,
+        "mean": 10.5012598425197,
+        "p95": 13.2,
+        "p99": 13.9
+      },
+      "occupancy_hash": "f3514acd8507f4f9d1d12252e49b2bdc7c73b1928ee5513ffc08816ade0a0f61",
+      "platform": "web",
+      "replay_divergence_count": 0,
+      "replay_probe_count": 11,
+      "room_hash": "6e7bf79e89aa892b8f33a4920970e31b60097b62d1de9833a707761e642a54aa",
+      "sample_count": 635,
+      "steady_state": {
+        "constant_owned_object_counts": true,
+        "first": {
+          "active": 190,
+          "authoritative_tick": 60,
+          "drain_records": 1,
+          "packets": 192,
+          "settled_nonzero": 1568,
+          "state_hash": "affdc9e614a833039014c3d4f6c066732084157389ac6270e2fcdd463b234750"
+        },
+        "history_samples": 11,
+        "last": {
+          "active": 0,
+          "authoritative_tick": 660,
+          "drain_records": 1,
+          "packets": 192,
+          "settled_nonzero": 1561,
+          "state_hash": "105ba54806915dd0918d5aa4e6d6583a303c6b3e5016d13ca3fe3bea594e7770"
+        },
+        "late_envelope_not_above_early_envelope": true,
+        "no_increasing_authoritative_counts_after_transient": true,
+        "ticks_strictly_increasing": true
+      },
+      "stress_checkpoint_hash_ms": {
+        "max": 19.4,
+        "mean": 12.5489763779528,
+        "p95": 15.7,
+        "p99": 16.9
+      },
+      "stress_full_runner_ms": {
+        "max": 215.7,
+        "mean": 143.20125984252,
+        "p95": 171,
+        "p99": 186.7
+      },
+      "stress_lanes": {
+        "active_after": 1703,
+        "airborne_q": 192,
+        "canonical": true,
+        "category_error": 0,
+        "drain_q": 16,
+        "lateral_pairs": 822,
+        "ledger_error": 0,
+        "packet_count": 192,
+        "reserve_q": 1600,
+        "selected_cells": 1024,
+        "settled_q": 24368,
+        "sleeping_cells": 100
+      },
+      "stress_lanes_reached": false,
+      "stress_simulation_ms": {
+        "max": 196.3,
+        "mean": 130.59842519685,
+        "p95": 156.2,
+        "p99": 171
+      },
+      "thresholds": {
+        "initial_stress_lanes_reached": false,
+        "preliminary_normal_simulation_p95_le_2ms": false,
+        "simulation_max_le_8ms": false,
+        "simulation_p95_le_4ms": false,
+        "simulation_p99_le_6ms": false,
+        "sustained_60_fps": false,
+        "whole_frame_p95_le_16_67ms": false,
+        "zero_category_error": true,
+        "zero_gameplay_affecting_dropped_ticks": false,
+        "zero_ledger_error": true,
+        "zero_replay_divergence": true
+      },
+      "timestamp_utc": "2026-07-25T14:19:08",
+      "tuning_hash": "f87fc2743b237743a2df0ca31d8650c1d4f1d86acfa48667c5c19814b85f4265",
+      "variant": "cell15",
+      "whole_frame_ms": {
+        "max": 374.8,
+        "mean": 189.165669291339,
+        "p95": 225.2,
+        "p99": 320.8
+      }
+    }
+  },
+  "schema": "package-2c-evidence-v2"
+}

@@ -1,4 +1,4 @@
-"""Normalize non-authoritative Package 2C timing evidence for source control."""
+"""Normalize Package 2C continuous timing and fallback evidence."""
 
 from __future__ import annotations
 
@@ -30,13 +30,13 @@ def write_json(path: pathlib.Path, value: object) -> None:
     )
 
 
-def assessment(result: dict) -> dict:
-    stress = result["stress_simulation_ms"]
+def threshold_assessment(result: dict) -> dict:
+    simulation = result["stress_simulation_ms"]
     frame = result["whole_frame_ms"]
     return {
-        "stress_p95_le_4ms": stress["p95"] <= 4.0,
-        "stress_p99_le_6ms": stress["p99"] <= 6.0,
-        "stress_max_le_8ms": stress["max"] <= 8.0,
+        "simulation_p95_le_4ms": simulation["p95"] <= 4.0,
+        "simulation_p99_le_6ms": simulation["p99"] <= 6.0,
+        "simulation_max_le_8ms": simulation["max"] <= 8.0,
         "whole_frame_p95_le_16_67ms": frame["p95"] <= 16.67,
         "sustained_60_fps": result["measured_fps"] >= 59.9,
         "zero_gameplay_affecting_dropped_ticks":
@@ -44,36 +44,108 @@ def assessment(result: dict) -> dict:
         "zero_replay_divergence": result["replay_divergence_count"] == 0,
         "zero_ledger_error": result["ledger_error_count"] == 0,
         "zero_category_error": result["category_error_count"] == 0,
-        "steady_authoritative_counts": result["steady_counts"]["steady"],
-        "stress_lanes_reached": result["stress_lanes_reached"],
-        "preliminary_normal_p95_le_2ms":
+        "initial_stress_lanes_reached": result["stress_lanes_reached"],
+        "preliminary_normal_simulation_p95_le_2ms":
             result["normal_simulation_ms"]["p95"] <= 2.0,
+    }
+
+
+def steady_assessment(result: dict) -> dict:
+    history = result["object_history"]
+    split = max(1, len(history) // 2)
+    early = history[:split]
+    late = history[split:]
+    constant_fields = ["packets", "drain_records"]
+    constants_hold = all(
+        len({sample[field] for sample in history}) == 1
+        for field in constant_fields
+    )
+    bounded_fields = ["active", "settled_nonzero"]
+    no_growth = all(
+        max(sample[field] for sample in late)
+        <= max(sample[field] for sample in early)
+        for field in bounded_fields
+    )
+    ticks = [sample["authoritative_tick"] for sample in history]
+    return {
+        "history_samples": len(history),
+        "ticks_strictly_increasing":
+            ticks == sorted(set(ticks)) and len(ticks) == len(set(ticks)),
+        "constant_owned_object_counts": constants_hold,
+        "late_envelope_not_above_early_envelope": no_growth,
+        "no_increasing_authoritative_counts_after_transient":
+            constants_hold and no_growth,
+        "first": history[0],
+        "last": history[-1],
+    }
+
+
+def summary(result: dict) -> dict:
+    return {
+        "timestamp_utc": result["timestamp_utc"],
+        "variant": result["variant"],
+        "platform": result["platform"],
+        "continuous_authority": result["continuous_authority"],
+        "measured_seconds": result["measured_seconds"],
+        "sample_count": result["sample_count"],
+        "measurement_start_tick": result["measurement_start_tick"],
+        "maximum_authoritative_tick": result["maximum_authoritative_tick"],
+        "measured_authoritative_ticks": result["measured_authoritative_ticks"],
+        "stress_simulation_ms": result["stress_simulation_ms"],
+        "stress_full_runner_ms": result["stress_full_runner_ms"],
+        "stress_checkpoint_hash_ms": result["stress_checkpoint_hash_ms"],
+        "normal_simulation_ms_preliminary": result["normal_simulation_ms"],
+        "normal_full_runner_ms_preliminary": result["normal_full_runner_ms"],
+        "whole_frame_ms": result["whole_frame_ms"],
+        "measured_fps": result["measured_fps"],
+        "gameplay_affecting_dropped_ticks":
+            result["gameplay_affecting_dropped_ticks"],
+        "replay_probe_count": result["replay_probe_count"],
+        "replay_divergence_count": result["replay_divergence_count"],
+        "ledger_error_count": result["ledger_error_count"],
+        "category_error_count": result["category_error_count"],
+        "stress_lanes": result["stress_lanes"],
+        "stress_lanes_reached": result["stress_lanes_reached"],
+        "tuning_hash": result["tuning_hash"],
+        "room_hash": result["room_hash"],
+        "occupancy_hash": result["occupancy_hash"],
+        "thresholds": threshold_assessment(result),
+        "steady_state": steady_assessment(result),
     }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--desktop-log", type=pathlib.Path, required=True)
-    parser.add_argument("--web-json", type=pathlib.Path, required=True)
-    parser.add_argument("--profile-log", type=pathlib.Path, required=True)
-    parser.add_argument("--web-pck", type=pathlib.Path, required=True)
+    parser.add_argument("--canonical-desktop-log", type=pathlib.Path, required=True)
+    parser.add_argument("--canonical-web-json", type=pathlib.Path, required=True)
+    parser.add_argument("--cell15-desktop-log", type=pathlib.Path, required=True)
+    parser.add_argument("--cell15-web-json", type=pathlib.Path, required=True)
+    parser.add_argument("--fallback-ladder-json", type=pathlib.Path, required=True)
     parser.add_argument("--output-dir", type=pathlib.Path, required=True)
     args = parser.parse_args()
 
-    desktop = prefixed_json(args.desktop_log, "P2C_BENCHMARK_RESULT ")
-    web = json.loads(args.web_json.read_text(encoding="utf-8"))
-    profile = prefixed_json(args.profile_log, "P2C_PROFILE ")
+    canonical_desktop = prefixed_json(
+        args.canonical_desktop_log, "P2C_BENCHMARK_RESULT "
+    )
+    canonical_web = json.loads(args.canonical_web_json.read_text(encoding="utf-8"))
+    cell15_desktop = prefixed_json(
+        args.cell15_desktop_log, "P2C_BENCHMARK_RESULT "
+    )
+    cell15_web = json.loads(args.cell15_web_json.read_text(encoding="utf-8"))
+    ladder = json.loads(args.fallback_ladder_json.read_text(encoding="utf-8"))
+    results = {
+        "canonical10_continuous_desktop.json": canonical_desktop,
+        "canonical10_continuous_web_chrome.json": canonical_web,
+        "cell15_continuous_desktop.json": cell15_desktop,
+        "cell15_continuous_web_chrome.json": cell15_web,
+        "fallback_ladder.json": ladder,
+    }
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    write_json(args.output_dir / "desktop_raw.json", desktop)
-    write_json(args.output_dir / "web_chrome_raw.json", web)
-    write_json(args.output_dir / "profile_original.json", profile)
+    for name, result in results.items():
+        write_json(args.output_dir / name, result)
 
-    profile_median = profile["median_us"]
-    immutable_floor_ms = (
-        profile_median["deposition"] + profile_median["state_hash"]
-    ) / 1000.0
     record = {
-        "schema": "package-2c-evidence-v1",
+        "schema": "package-2c-evidence-v2",
         "authoritative": False,
         "excluded_from_state_replay_and_hashes": True,
         "machine": {
@@ -95,100 +167,70 @@ def main() -> int:
             "developer_tools_open": False,
             "desktop_export_mode": "debug editor scene",
             "web_export_mode": "Godot Web release",
-            "desktop_command":
-                "Godot_v4.6.3-stable_win64_console.exe --path "
-                "\"C:\\Users\\User\\Documents\\Slime Gulper\" "
-                "res://better_spewing/benchmarks/flow_benchmark_scene.tscn",
-            "web_export_command":
-                "Godot_v4.6.3-stable_win64_console.exe --headless --path "
-                "\"<independent temporary project copy>\" --export-release Web "
-                "\"<temporary project>\\build\\web\\index.html\"",
-            "chrome_command":
-                "chrome.exe --user-data-dir=<fresh temporary profile> "
-                "--no-first-run --no-default-browser-check "
-                "--disable-background-timer-throttling "
-                "--disable-renderer-backgrounding "
-                "--disable-backgrounding-occluded-windows "
-                "--window-size=960,540 http://127.0.0.1:8765/index.html",
             "chrome_watchdog_seconds": 170,
-            "web_export_pck_bytes": args.web_pck.stat().st_size,
-            "web_export_pck_sha256": sha256(args.web_pck),
+            "timing_scopes": {
+                "stress_simulation_ms":
+                    "GooSimulation.step only; Section 18 thresholds apply here",
+                "stress_full_runner_ms":
+                    "complete AuthoritativeRunner.step_frame including hash",
+                "stress_checkpoint_hash_ms":
+                    "canonical validation/serialization/SHA portion",
+                "whole_frame_ms": "wall-clock rendered frame",
+            },
         },
-        "desktop": {
-            "timestamp_utc": desktop["timestamp_utc"],
-            "measured_seconds": desktop["measured_seconds"],
-            "sample_count": desktop["sample_count"],
-            "stress_simulation_ms": desktop["stress_simulation_ms"],
-            "normal_simulation_ms_preliminary": desktop["normal_simulation_ms"],
-            "whole_frame_ms": desktop["whole_frame_ms"],
-            "measured_fps": desktop["measured_fps"],
-            "maximum_authoritative_tick": desktop["maximum_authoritative_tick"],
-            "gameplay_affecting_dropped_ticks":
-                desktop["gameplay_affecting_dropped_ticks"],
-            "assessment": assessment(desktop),
+        "runs": {
+            "canonical10_desktop": summary(canonical_desktop),
+            "canonical10_web_installed_chrome": summary(canonical_web),
+            "cell15_desktop": summary(cell15_desktop),
+            "cell15_web_installed_chrome": summary(cell15_web),
         },
-        "web_installed_stable_chrome": {
-            "timestamp_utc": web["timestamp_utc"],
-            "measured_seconds": web["measured_seconds"],
-            "sample_count": web["sample_count"],
-            "stress_simulation_ms": web["stress_simulation_ms"],
-            "normal_simulation_ms_preliminary": web["normal_simulation_ms"],
-            "whole_frame_ms": web["whole_frame_ms"],
-            "measured_fps": web["measured_fps"],
-            "maximum_authoritative_tick": web["maximum_authoritative_tick"],
-            "gameplay_affecting_dropped_ticks":
-                web["gameplay_affecting_dropped_ticks"],
-            "assessment": assessment(web),
+        "fallback_ladder": {
+            "order": ladder["variant_order"],
+            "all_profile_processes_exit_zero":
+                all(item["exit_code"] == 0 for item in ladder["commands"]),
+            "all_resume_hashes_identical":
+                all(item["resume_hash_identical"] for item in ladder["records"]),
+            "all_replays_round_trip":
+                all(item["replay_round_trip"] for item in ladder["records"]),
+            "records": [
+                {
+                    "variant": item["variant"],
+                    "grid_cells": item["grid_cells"],
+                    "tuning_hash": item["tuning_hash"],
+                    "room_hash": item["room_hash"],
+                    "occupancy_hash": item["occupancy_hash"],
+                    "replay_sha256": item["replay_sha256"],
+                    "core_simulation_us": item["core_simulation_us"],
+                    "full_runner_us": item["full_runner_us"],
+                    "checkpoint_hash_us": item["checkpoint_hash_us"],
+                    "lanes_reached": item["lanes_reached"],
+                }
+                for item in ladder["records"]
+            ],
         },
-        "integrity": {
-            "desktop_replay_divergence_count":
-                desktop["replay_divergence_count"],
-            "web_replay_divergence_count": web["replay_divergence_count"],
-            "desktop_ledger_error_count": desktop["ledger_error_count"],
-            "web_ledger_error_count": web["ledger_error_count"],
-            "desktop_category_error_count": desktop["category_error_count"],
-            "web_category_error_count": web["category_error_count"],
-            "desktop_stress_lanes_reached": desktop["stress_lanes_reached"],
-            "web_stress_lanes_reached": web["stress_lanes_reached"],
-            "desktop_steady_counts": desktop["steady_counts"],
-            "web_steady_counts": web["steady_counts"],
-        },
-        "profile_original": profile,
         "fallback_decision": {
             "thresholds_passed": False,
-            "authoritative_tuning_changed": False,
-            "cosmetics":
-                "Not applicable to the simulation failure; code-drawn rendering "
-                "is required and is outside the timed runner tick.",
-            "lateral_pair_reduction":
-                "Not applied. The profiled median deposition plus canonical hash "
-                f"floor is {immutable_floor_ms:.3f} ms before lateral flow, already "
-                "above the 8 ms maximum target.",
-            "sleep_aggressiveness":
-                "Not applied. The declared saturation state is reconstructed for "
-                "each sample, so sleep timing cannot reduce this measured tick.",
-            "active_cell_reduction":
-                "Not applied. It cannot reduce packet deposition or canonical "
-                "hashing, whose measured lower bound already fails.",
-            "cell_size_12_or_15":
-                "Not applied. The dominant 192-packet Manhattan-radius-4 "
-                "deposition search retains the same packet and candidate counts; "
-                "even eliminating flow entirely leaves the measured deposition "
-                "plus hash floor above target. Rebuilding masks/replays therefore "
-                "cannot make this declared workload meet the threshold.",
+            "authoritative_tuning_accepted": False,
+            "canonical_tuning_retained":
+                "f8a3c2e7a071b5b088da2bc1a32edeae7a7fe9dacd7e0d661457603a6f88bc65",
+            "reason":
+                "Every declared fallback was executed in order in an isolated "
+                "project copy with rebuilt tuning, room definition, occupancy, "
+                "grid state, and replay bytes. The terminal 15px Web run still "
+                "has simulation p95 156.2ms and p99 171.0ms, and its 64x36 grid "
+                "can reach only 822 of the permitted minimum 1024 lateral pairs. "
+                "It therefore fails timing and declared stress semantics.",
             "terminal_disposition":
-                "Per canonical Section 19.1, stop before production room "
-                "migration and return the reduced basin-column model proposal "
-                "requirement for Creator approval.",
+                "Stop before G2/production migration and request the Creator's "
+                "explicit decision on reduced_basin_column_proposal.md.",
         },
-        "tooling_notes": [
-            "Initial export attempt failed because the target directory did not "
-            "exist; directory creation made the identical export command pass.",
-            "A detached Chrome/server attempt inherited output handles and hung; "
-            "one exact orphan Python server was terminated.",
-            "The accepted web measurement used one foreground orchestrator with "
-            "a 170-second watchdog and exact Chrome process-tree teardown.",
-        ],
+        "original_noncontinuous_evidence_retained": {
+            "desktop_raw_sha256": sha256(args.output_dir / "desktop_raw.json"),
+            "web_raw_sha256": sha256(args.output_dir / "web_chrome_raw.json"),
+            "label":
+                "Package 2C first-return reset microbenchmark; non-continuous "
+                "and not used for corrected acceptance claims.",
+        },
         "deferred_not_mocked": [
             "128 suction jobs",
             "four coverable hazard spans",
@@ -196,14 +238,14 @@ def main() -> int:
             "production Rooms 1-4",
         ],
     }
-    write_json(args.output_dir / "package_2c_evidence.json", record)
+    write_json(args.output_dir / "package_2c_evidence_v2.json", record)
     print(
-        "P2C_EVIDENCE "
+        "P2C_EVIDENCE_V2 "
         + json.dumps(
             {
-                "desktop_samples": desktop["sample_count"],
-                "web_samples": web["sample_count"],
-                "profile_floor_ms": immutable_floor_ms,
+                "canonical_web_samples": canonical_web["sample_count"],
+                "cell15_web_samples": cell15_web["sample_count"],
+                "fallback_variants": len(ladder["records"]),
                 "output": str(args.output_dir),
             },
             separators=(",", ":"),
