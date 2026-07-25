@@ -30,7 +30,8 @@ const FIELD_ORDER := [
 	"maximum_suction_jobs",
 	"suction_travel_min_ticks",
 	"suction_travel_max_ticks",
-	"recoil_subpixels_per_s_per_q",
+	"recoil_subpixel_numerator_per_s_per_q",
+	"recoil_subpixel_denominator",
 	"recoil_tick_cap_fp_per_s",
 	"maximum_upward_speed_fp_per_s",
 	"wade_threshold_permille",
@@ -67,7 +68,8 @@ const VALUES := {
 	"maximum_suction_jobs": 128,
 	"suction_travel_min_ticks": 4,
 	"suction_travel_max_ticks": 18,
-	"recoil_subpixels_per_s_per_q": 307,
+	"recoil_subpixel_numerator_per_s_per_q": 1536,
+	"recoil_subpixel_denominator": 5,
 	"recoil_tick_cap_fp_per_s": 16 * SUBPIXELS_PER_PIXEL,
 	"maximum_upward_speed_fp_per_s": 800 * SUBPIXELS_PER_PIXEL,
 	"wade_threshold_permille": 200,
@@ -105,6 +107,8 @@ static func validate(values: Variant = VALUES) -> String:
 		return "spike unsafe depth must be below safe depth"
 	if values.suction_travel_min_ticks > values.suction_travel_max_ticks:
 		return "suction travel range is inverted"
+	if values.recoil_subpixel_denominator == 0:
+		return "recoil rational denominator must be nonzero"
 	return ""
 
 

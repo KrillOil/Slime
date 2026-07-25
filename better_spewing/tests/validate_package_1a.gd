@@ -5,12 +5,12 @@ const Tuning := preload("res://better_spewing/contracts/goo_tuning.gd")
 const Schema := preload("res://better_spewing/contracts/canonical_state_schema.gd")
 const Serializer := preload("res://better_spewing/contracts/canonical_serializer.gd")
 
-const EXPECTED_ZERO_STATE_BYTES := 311
-const EXPECTED_ZERO_STATE_SHA256 := "ba946ec84f86c24d7274a0d5ddd0a506e2b2f15fcc4990c0427c8fbdf31944cc"
-const EXPECTED_SCHEMA_FIELDS := 94
-const EXPECTED_SCHEMA_SHA256 := "57add1d42f9a741b270785c38518010f8eef6a030e05284f5b5ebf1f4558d5a7"
-const EXPECTED_TUNING_BYTES := 140
-const EXPECTED_TUNING_SHA256 := "efabcb7496b22056f2f949161bf1bedc1684e97bd842f4f41efc3772d29f402d"
+const EXPECTED_ZERO_STATE_BYTES := 315
+const EXPECTED_ZERO_STATE_SHA256 := "48f35b356bbfb4dbe03ae558b5667cf69b5f849e189325d036f4539fde2175b6"
+const EXPECTED_SCHEMA_FIELDS := 95
+const EXPECTED_SCHEMA_SHA256 := "19bbd6fe7732ba4243a34389d57515b71dc5d1330708afc8bbac5900c9ab1ffa"
+const EXPECTED_TUNING_BYTES := 144
+const EXPECTED_TUNING_SHA256 := "f8a3c2e7a071b5b088da2bc1a32edeae7a7fe9dacd7e0d661457603a6f88bc65"
 const EXPECTED_COMMAND_HEX := "04030201ff0101020b0a44332211feffffff"
 
 var passed := 0
@@ -45,13 +45,21 @@ func _test_versions_and_tuning() -> void:
 	_check(all_integer, "all tuning values are integers")
 	_check(Tuning.canonical_bytes().size() == EXPECTED_TUNING_BYTES, "tuning fixed-width byte length")
 	_check(Tuning.canonical_hash() == EXPECTED_TUNING_SHA256, "tuning canonical hash fixture")
-	_check(Tuning.canonical_bytes().slice(0, 4).hex_encode() == "01002200", "tuning header is little-endian")
+	_check(Tuning.canonical_bytes().slice(0, 4).hex_encode() == "01002300", "tuning header is little-endian")
+	_check(
+		Tuning.VALUES.recoil_subpixel_numerator_per_s_per_q == 1536
+		and Tuning.VALUES.recoil_subpixel_denominator == 5,
+		"1.2px recoil is represented exactly as 1536/5 subpixels"
+	)
 	var float_tuning: Dictionary = Tuning.VALUES.duplicate(true)
 	float_tuning.spew_rate_qps = 448.0
 	_check("must be integer" in Tuning.validate(float_tuning), "floating-point tuning is rejected")
 	var invalid_thresholds: Dictionary = Tuning.VALUES.duplicate(true)
 	invalid_thresholds.swim_exit_permille = invalid_thresholds.swim_entry_permille
 	_check("below entry" in Tuning.validate(invalid_thresholds), "invalid threshold ordering is rejected")
+	var invalid_recoil: Dictionary = Tuning.VALUES.duplicate(true)
+	invalid_recoil.recoil_subpixel_denominator = 0
+	_check("denominator" in Tuning.validate(invalid_recoil), "zero recoil denominator is rejected")
 
 
 func _test_command_frame_contract() -> void:

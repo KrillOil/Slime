@@ -106,7 +106,7 @@ static func serialize_state_checked(state: Variant) -> Dictionary:
 
 	for field in ["packet", "suction_job", "drain_record", "recovery_record"]:
 		_append_u32(bytes, state.next_ids[field])
-	for field in ["spew_rate", "gulp_rate", "drain_return", "player_gravity", "player_position_x", "player_position_y", "player_recoil_x", "player_recoil_y"]:
+	for field in ["spew_rate", "gulp_rate", "drain_return", "player_gravity", "player_position_x", "player_position_y", "player_recoil_x", "player_recoil_y", "recoil_fraction"]:
 		_append_i32(bytes, state.remainders[field])
 
 	_append_i32(bytes, state.player.position_x_fp)
@@ -359,7 +359,7 @@ static func _validate_next_ids(value: Variant) -> String:
 
 
 static func _validate_remainders(value: Variant) -> String:
-	var fields := ["spew_rate", "gulp_rate", "drain_return", "player_gravity", "player_position_x", "player_position_y", "player_recoil_x", "player_recoil_y"]
+	var fields := ["spew_rate", "gulp_rate", "drain_return", "player_gravity", "player_position_x", "player_position_y", "player_recoil_x", "player_recoil_y", "recoil_fraction"]
 	var error := _validate_exact_fields(value, fields, "remainders")
 	if not error.is_empty():
 		return error

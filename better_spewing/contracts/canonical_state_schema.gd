@@ -71,6 +71,7 @@ const FIELD_ORDER := [
 	"remainders.player_position_y:i32",
 	"remainders.player_recoil_x:i32",
 	"remainders.player_recoil_y:i32",
+	"remainders.recoil_fraction:i32",
 	"player.position_x_fp:i32",
 	"player.position_y_fp:i32",
 	"player.velocity_x_fp_per_s:i32",
@@ -170,6 +171,7 @@ static func default_state() -> Dictionary:
 			"player_position_y": 0,
 			"player_recoil_x": 0,
 			"player_recoil_y": 0,
+			"recoil_fraction": 0,
 		},
 		"player": {
 			"position_x_fp": 0,
