@@ -8,6 +8,10 @@ static func wrap_index(index: int) -> int:
 	return posmod(index, AimTable.ENTRY_COUNT)
 
 
+static func initial_aim_for_facing(facing: int) -> int:
+	return 0 if facing >= 0 else 2048
+
+
 static func quantize_vector(delta_x: int, delta_y: int, entries: Array[Vector2i]) -> int:
 	if delta_x == 0 and delta_y == 0:
 		return 0
@@ -26,7 +30,6 @@ static func resolve(
 	cursor_x_fp: int,
 	cursor_y_fp: int,
 	mouth: Vector2i,
-	has_last_valid_aim: bool,
 	last_valid_aim: int,
 	facing: int,
 	entries: Array[Vector2i]
@@ -35,7 +38,7 @@ static func resolve(
 	var delta_y := cursor_y_fp - mouth.y
 	var distance_squared := delta_x * delta_x + delta_y * delta_y
 	if distance_squared < MIN_CURSOR_DISTANCE_FP * MIN_CURSOR_DISTANCE_FP:
-		if has_last_valid_aim:
-			return wrap_index(last_valid_aim)
-		return 0 if facing >= 0 else 2048
+		# Every created canonical state seeds last_valid_aim from facing.
+		# There is therefore no unhashed "has aim" lifecycle state.
+		return wrap_index(last_valid_aim)
 	return quantize_vector(delta_x, delta_y, entries)

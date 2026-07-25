@@ -1,6 +1,7 @@
 extends SceneTree
 
 const AimTable := preload("res://better_spewing/aim/aim_table.gd")
+const AimData := preload("res://better_spewing/aim/generated_aim_table.gd")
 const AimQuantizer := preload("res://better_spewing/aim/aim_quantizer.gd")
 const Contracts := preload("res://better_spewing/contracts/goo_contracts.gd")
 const Serializer := preload("res://better_spewing/contracts/canonical_serializer.gd")
@@ -23,6 +24,7 @@ func _init() -> void:
 		_test_aim_table()
 		_test_aim_resolution()
 		_test_live_replay_equivalence()
+		_test_checkpoint_resume()
 	_test_replay_codec()
 	_test_mouth_assertions()
 	_test_runner()
@@ -34,6 +36,8 @@ func _test_aim_table() -> void:
 	_check(entries.size() == 4096, "aim table has 4096 entries")
 	_check(AimTable.BYTE_LENGTH == 32780, "aim table fixed byte length")
 	_check(AimTable.SHA256 == "cd57fcdb178d685bf3ba4b07d37244fda27a8ebe802b7faa43d17b690e0e444b", "aim table SHA-256 fixture")
+	_check(AimData.BYTE_LENGTH == AimTable.BYTE_LENGTH, "preloaded ASCII resource declares canonical byte length")
+	_check(AimData.CANONICAL_SHA256 == AimTable.SHA256, "preloaded ASCII resource declares canonical checksum")
 	_check(entries[0] == Vector2i(1000000, 0), "zero angle is positive x cardinal")
 	_check(entries[1024] == Vector2i(0, 1000000), "quarter turn is positive y cardinal")
 	_check(entries[2048] == Vector2i(-1000000, 0), "half turn is negative x cardinal")
@@ -50,10 +54,16 @@ func _test_aim_table() -> void:
 
 func _test_aim_resolution() -> void:
 	var mouth := Vector2i(1000, 2000)
-	_check(AimQuantizer.resolve(1000, 2000, mouth, false, 77, 1, entries) == 0, "near cursor without history uses right facing")
-	_check(AimQuantizer.resolve(1000, 2000, mouth, false, 77, -1, entries) == 2048, "near cursor without history uses left facing")
-	_check(AimQuantizer.resolve(1000 + 7 * 256, 2000, mouth, true, 77, 1, entries) == 77, "cursor below 8 px reuses last valid aim")
-	_check(AimQuantizer.resolve(1000 + 8 * 256, 2000, mouth, true, 77, 1, entries) == 0, "cursor at 8 px quantizes a new aim")
+	_check(AimQuantizer.initial_aim_for_facing(1) == 0, "right-facing initial aim is canonical index zero")
+	_check(AimQuantizer.initial_aim_for_facing(-1) == 2048, "left-facing initial aim is canonical index 2048")
+	_check(AimQuantizer.resolve(1000, 2000, mouth, 0, 1, entries) == 0, "near cursor uses seeded right-facing last aim")
+	_check(AimQuantizer.resolve(1000, 2000, mouth, 2048, -1, entries) == 2048, "near cursor uses seeded left-facing last aim")
+	_check(AimQuantizer.resolve(1000 + 7 * 256, 2000, mouth, 77, 1, entries) == 77, "cursor below 8 px reuses canonical last valid aim")
+	_check(AimQuantizer.resolve(1000 + 8 * 256, 2000, mouth, 77, 1, entries) == 0, "cursor at 8 px quantizes a new aim")
+	var left_header := Fixture.header()
+	left_header.initial_player.facing = -1
+	var left_state := ReplayCodec.state_from_header(left_header, Fixture.occupancy_hash())
+	_check(left_state.player.last_valid_aim == 2048 and left_state.command_sampler.last_valid_aim == 2048, "facing-derived initial aim immediately becomes canonical last valid aim")
 
 
 func _test_replay_codec() -> void:
@@ -131,6 +141,54 @@ func _test_live_replay_equivalence() -> void:
 			if result.ok and result.frame.move_x != 0:
 				state.player.facing = result.frame.move_x
 		_check(identical, "live and replay sources produce identical GooCommandFrames")
+
+
+func _test_checkpoint_resume() -> void:
+	var header := Fixture.header()
+	var initial_state := ReplayCodec.state_from_header(header, Fixture.occupancy_hash())
+	var uninterrupted_runner := Runner.new(initial_state)
+	var uninterrupted_source := LiveSource.new(entries)
+	var initial_mouth := Vector2i(Fixture.PLAYER_X_FP, Fixture.MOUTH_Y_FP)
+	var direction := entries[700]
+	var far_snapshot := _snapshot(
+		0, 0, false, false, false,
+		initial_mouth.x + roundi(direction.x / 100.0),
+		initial_mouth.y + roundi(direction.y / 100.0)
+	)
+	uninterrupted_source.enqueue_snapshot(far_snapshot)
+	var far_result := uninterrupted_runner.step_from_source(uninterrupted_source)
+	_check(far_result.ok and uninterrupted_runner.state.command_sampler.last_valid_aim == 700, "far cursor establishes non-cardinal aim in canonical sampler state")
+	var serialized_checkpoint := Serializer.serialize_state_checked(uninterrupted_runner.state)
+	var restored_state: Dictionary = uninterrupted_runner.state.duplicate(true)
+	var serialized_copy := Serializer.serialize_state_checked(restored_state)
+	_check(serialized_checkpoint.ok and serialized_copy.ok and serialized_checkpoint.bytes == serialized_copy.bytes, "checkpoint copy is byte-identical through canonical serialization")
+	var restored_runner := Runner.new(restored_state)
+	var restored_source := LiveSource.new(entries)
+	var near_facing_change := _snapshot(-1, 0, false, false, false, initial_mouth.x, initial_mouth.y)
+	var near_after_change := _snapshot(0, 0, false, false, false, initial_mouth.x, initial_mouth.y)
+	for snapshot in [near_facing_change, near_after_change]:
+		uninterrupted_source.enqueue_snapshot(snapshot)
+		restored_source.enqueue_snapshot(snapshot)
+	var uninterrupted_hashes: Array[String] = []
+	var restored_hashes: Array[String] = []
+	var frames_identical := true
+	for tick in [1, 2]:
+		var uninterrupted_command := uninterrupted_source.next_frame(tick, uninterrupted_runner.state)
+		var restored_command := restored_source.next_frame(tick, restored_runner.state)
+		frames_identical = frames_identical and uninterrupted_command.ok and restored_command.ok
+		frames_identical = frames_identical and uninterrupted_command.frame == restored_command.frame
+		if uninterrupted_command.ok and restored_command.ok:
+			var uninterrupted_step := uninterrupted_runner.step_frame(uninterrupted_command.frame)
+			var restored_step := restored_runner.step_frame(restored_command.frame)
+			frames_identical = frames_identical and uninterrupted_step.ok and restored_step.ok
+			uninterrupted_hashes.append(uninterrupted_step.hash)
+			restored_hashes.append(restored_step.hash)
+	_check(frames_identical, "checkpoint restore produces identical near-cursor frames across facing change")
+	_check(uninterrupted_hashes == restored_hashes, "checkpoint restore produces identical ordered checkpoint hashes")
+	_check(
+		Serializer.state_hash(uninterrupted_runner.state) == Serializer.state_hash(restored_runner.state),
+		"checkpoint restore produces identical final complete-state hash"
+	)
 
 
 func _test_runner() -> void:

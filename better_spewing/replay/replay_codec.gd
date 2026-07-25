@@ -3,6 +3,7 @@ extends RefCounted
 const Contracts := preload("res://better_spewing/contracts/goo_contracts.gd")
 const Serializer := preload("res://better_spewing/contracts/canonical_serializer.gd")
 const Schema := preload("res://better_spewing/contracts/canonical_state_schema.gd")
+const AimQuantizer := preload("res://better_spewing/aim/aim_quantizer.gd")
 
 const MAGIC := "GRP1"
 const VERSION := 1
@@ -116,7 +117,9 @@ static func state_from_header(header: Dictionary, occupancy_hash: PackedByteArra
 	state.player.position_x_fp = header.initial_player.position_x_fp
 	state.player.position_y_fp = header.initial_player.position_y_fp
 	state.player.facing = header.initial_player.facing
+	state.player.last_valid_aim = AimQuantizer.initial_aim_for_facing(header.initial_player.facing)
 	state.command_sampler.facing = header.initial_player.facing
+	state.command_sampler.last_valid_aim = state.player.last_valid_aim
 	state.immutable_hashes.room_definition = header.room_definition_hash.duplicate()
 	state.immutable_hashes.tuning = header.tuning_hash.duplicate()
 	state.immutable_hashes.occupancy = occupancy_hash.duplicate()
@@ -190,8 +193,11 @@ static func _valid_commit_id(value: Variant) -> bool:
 static func _valid_fixed_string(value: Variant, width: int) -> bool:
 	if typeof(value) != TYPE_STRING or value.is_empty() or value.length() > width:
 		return false
-	if value.to_utf8_buffer().size() != value.length() or value.contains(String.chr(0)):
+	if value.to_utf8_buffer().size() != value.length():
 		return false
+	for index in value.length():
+		if value.unicode_at(index) == 0:
+			return false
 	return true
 
 

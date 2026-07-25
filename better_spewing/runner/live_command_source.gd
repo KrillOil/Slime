@@ -34,5 +34,5 @@ func next_frame(expected_tick: int, state: Dictionary) -> Dictionary:
 		return {"ok": false, "error": "live snapshot queue exhausted"}
 	var snapshot := snapshots[cursor]
 	cursor += 1
-	var frame: Dictionary = sampler.sample_snapshot(expected_tick, snapshot, state.player)
+	var frame: Dictionary = sampler.sample_snapshot(expected_tick, snapshot, state)
 	return {"ok": true, "error": "", "frame": frame}

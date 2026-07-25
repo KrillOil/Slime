@@ -1,6 +1,6 @@
 extends RefCounted
 
-const TABLE_PATH := "res://better_spewing/aim/data/aim_table.bin"
+const AimData := preload("res://better_spewing/aim/generated_aim_table.gd")
 const MAGIC := "GAT1"
 const VERSION := 1
 const ENTRY_COUNT := 4096
@@ -11,8 +11,8 @@ const BYTE_LENGTH := HEADER_BYTES + ENTRY_COUNT * ENTRY_BYTES
 const SHA256 := "cd57fcdb178d685bf3ba4b07d37244fda27a8ebe802b7faa43d17b690e0e444b"
 
 
-static func load_checked(path: String = TABLE_PATH) -> Dictionary:
-	var bytes := FileAccess.get_file_as_bytes(path)
+static func load_checked() -> Dictionary:
+	var bytes: PackedByteArray = AimData.canonical_bytes()
 	if bytes.size() != BYTE_LENGTH:
 		return {"ok": false, "error": "aim table byte length mismatch", "entries": []}
 	if _sha256(bytes) != SHA256:
