@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource path="res://better_spewing/visualization/packet_visualizer.gd" type="Script" id="1"]
+[ext_resource path="res://better_spewing/visualization/isolated_packet_simulation.gd" type="Script" id="2"]
+
+[node name="IsolatedPacketSimulation" type="Node2D"]
+script = ExtResource("2")
+
+[node name="PacketVisualizer" type="Node2D" parent="."]
+script = ExtResource("1")

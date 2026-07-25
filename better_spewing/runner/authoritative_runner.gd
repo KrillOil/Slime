@@ -4,6 +4,8 @@ const Contracts := preload("res://better_spewing/contracts/goo_contracts.gd")
 const Serializer := preload("res://better_spewing/contracts/canonical_serializer.gd")
 const Schema := preload("res://better_spewing/contracts/canonical_state_schema.gd")
 const MouthDerivation := preload("res://better_spewing/runner/mouth_derivation.gd")
+const AimTable := preload("res://better_spewing/aim/aim_table.gd")
+const GooSimulation := preload("res://better_spewing/simulation/goo_simulation.gd")
 
 const AUTHORITATIVE_HZ := 60
 const MICROSECONDS_PER_SECOND := 1_000_000
@@ -11,10 +13,13 @@ const MICROSECONDS_PER_SECOND := 1_000_000
 var state: Dictionary
 var scheduler_units := 0
 var checkpoint_hashes: Array[String] = []
+var simulation: RefCounted
 
 
 func _init(initial_state: Dictionary = {}) -> void:
 	state = Schema.default_state() if initial_state.is_empty() else initial_state.duplicate(true)
+	var table := AimTable.load_checked()
+	simulation = GooSimulation.new(table.entries if table.ok else [])
 
 
 func step_from_source(source: Variant) -> Dictionary:
@@ -49,12 +54,13 @@ func step_frame(frame: Dictionary) -> Dictionary:
 	state.command_sampler.resolved_action = frame.goo_action
 	state.command_sampler.last_valid_aim = frame.aim_angle
 	state.command_sampler.facing = state.player.facing
+	var simulation_result: Dictionary = simulation.step(state, frame)
 	state.tick += 1
 	var hash := Serializer.state_hash(state)
 	if hash.is_empty():
 		return {"ok": false, "error": Serializer.validate_state(state), "hash": ""}
 	checkpoint_hashes.append(hash)
-	return {"ok": true, "error": "", "hash": hash}
+	return {"ok": true, "error": "", "hash": hash, "simulation": simulation_result}
 
 
 func run_ticks(source: Variant, count: int) -> Dictionary:

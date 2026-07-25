@@ -54,6 +54,8 @@ static func serialize_state_checked(state: Variant) -> Dictionary:
 	_append_u32(bytes, state.packets.size())
 	for packet in state.packets:
 		_append_u32(bytes, packet.id)
+		_append_u32(bytes, packet.emission_tick)
+		_append_u16(bytes, packet.aim_angle)
 		_append_i32(bytes, packet.position_x_fp)
 		_append_i32(bytes, packet.position_y_fp)
 		_append_i32(bytes, packet.velocity_x_fp_per_s)
@@ -205,7 +207,7 @@ static func _validate_packets(value: Variant) -> String:
 	if typeof(value) != TYPE_ARRAY:
 		return "packets must be an Array"
 	var previous_id := 0
-	var fields := ["id", "position_x_fp", "position_y_fp", "velocity_x_fp_per_s", "velocity_y_fp_per_s", "volume_q", "lifetime_ticks", "lifecycle", "suction_reserved", "stationary_ticks", "position_x_remainder", "position_y_remainder", "gravity_remainder"]
+	var fields := ["id", "emission_tick", "aim_angle", "position_x_fp", "position_y_fp", "velocity_x_fp_per_s", "velocity_y_fp_per_s", "volume_q", "lifetime_ticks", "lifecycle", "suction_reserved", "stationary_ticks", "position_x_remainder", "position_y_remainder", "gravity_remainder"]
 	for packet in value:
 		var field_error := _validate_exact_fields(packet, fields, "packet")
 		if not field_error.is_empty():
@@ -213,6 +215,10 @@ static func _validate_packets(value: Variant) -> String:
 		if not _is_uint(packet.id, 32) or packet.id == 0 or packet.id <= previous_id:
 			return "packets must have strictly increasing nonzero stable IDs"
 		previous_id = packet.id
+		if not _is_uint(packet.emission_tick, 32):
+			return "packet emission_tick must be uint32"
+		if not _is_uint(packet.aim_angle, 16) or packet.aim_angle > 4095:
+			return "packet aim_angle must be 12-bit"
 		for field in ["position_x_fp", "position_y_fp", "velocity_x_fp_per_s", "velocity_y_fp_per_s", "position_x_remainder", "position_y_remainder", "gravity_remainder"]:
 			if not _is_int32(packet[field]):
 				return "packet %s must be int32" % field

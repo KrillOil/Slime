@@ -6,9 +6,9 @@ const Schema := preload("res://better_spewing/contracts/canonical_state_schema.g
 const Serializer := preload("res://better_spewing/contracts/canonical_serializer.gd")
 
 const EXPECTED_ZERO_STATE_BYTES := 315
-const EXPECTED_ZERO_STATE_SHA256 := "48f35b356bbfb4dbe03ae558b5667cf69b5f849e189325d036f4539fde2175b6"
-const EXPECTED_SCHEMA_FIELDS := 95
-const EXPECTED_SCHEMA_SHA256 := "19bbd6fe7732ba4243a34389d57515b71dc5d1330708afc8bbac5900c9ab1ffa"
+const EXPECTED_ZERO_STATE_SHA256 := "d85101a2e0f4deddbbc5ea3a0437eca5915cb0dc3fb6b46b84244ac430daaf2b"
+const EXPECTED_SCHEMA_FIELDS := 97
+const EXPECTED_SCHEMA_SHA256 := "9abf8667c9fc5d98676f65f609706ecf9819acc9aaef55a535de23e8e6ea270c"
 const EXPECTED_TUNING_BYTES := 144
 const EXPECTED_TUNING_SHA256 := "f8a3c2e7a071b5b088da2bc1a32edeae7a7fe9dacd7e0d661457603a6f88bc65"
 const EXPECTED_COMMAND_HEX := "04030201ff0101020b0a44332211feffffff"
@@ -211,6 +211,8 @@ func _test_schema_audit() -> void:
 	_check(Schema.FIELD_ORDER[0] == "schema_version:u16", "schema starts with version")
 	_check(Schema.FIELD_ORDER[1] == "tick:u32", "tick is second in canonical order")
 	_check(Schema.FIELD_ORDER[-1] == "immutable_hashes.occupancy:bytes32", "occupancy hash closes canonical order")
+	var packet_default := Schema.default_packet()
+	_check(packet_default.has("emission_tick") and packet_default.has("aim_angle") and packet_default.size() == 15, "packet default declares every schema-v2 future field")
 	for item in Schema.SECTION_9_3_AUDIT:
 		var item_ok := true
 		for path in Schema.SECTION_9_3_AUDIT[item]:
@@ -231,7 +233,7 @@ func _test_zero_state_fixture() -> void:
 	_check(first.bytes == second.bytes, "default serialization is byte-identical in process")
 	_check(first.bytes.size() == EXPECTED_ZERO_STATE_BYTES, "zero-state byte length fixture")
 	_check(Serializer.state_hash(state) == EXPECTED_ZERO_STATE_SHA256, "zero-state SHA-256 fixture")
-	_check(first.bytes.slice(0, 6).hex_encode() == "010000000000", "state header is versioned little-endian")
+	_check(first.bytes.slice(0, 6).hex_encode() == "020000000000", "state header is versioned little-endian")
 	var wide_ledger := Schema.default_state()
 	wide_ledger.ledger.initial = 0x0102030405060708
 	wide_ledger.ledger.reserve = 0x0102030405060708
@@ -241,9 +243,9 @@ func _test_zero_state_fixture() -> void:
 
 func _test_rejections() -> void:
 	var wrong_version := Schema.default_state()
-	wrong_version.schema_version = 2
+	wrong_version.schema_version = 1
 	var wrong_version_result := Serializer.serialize_state_checked(wrong_version)
-	_check(not wrong_version_result.ok and "unsupported schema_version" in wrong_version_result.error, "unsupported schema version is rejected")
+	_check(not wrong_version_result.ok and "unsupported schema_version" in wrong_version_result.error, "old schema version is rejected")
 	var bad_tick := Schema.default_state()
 	bad_tick.tick = -1
 	_check(not Serializer.serialize_state_checked(bad_tick).ok, "negative uint32 state is rejected")

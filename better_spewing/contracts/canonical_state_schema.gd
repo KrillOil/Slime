@@ -2,7 +2,7 @@ extends RefCounted
 
 const Contracts := preload("res://better_spewing/contracts/goo_contracts.gd")
 
-const SCHEMA_VERSION := 1
+const SCHEMA_VERSION := 2
 const HASH_BYTE_COUNT := 32
 
 # The order in this descriptor is the serialized byte order. Array entry
@@ -19,6 +19,8 @@ const FIELD_ORDER := [
 	"ledger.drain:i64",
 	"packets:array<packet>:stable_id",
 	"packet.id:u32",
+	"packet.emission_tick:u32",
+	"packet.aim_angle:u16",
 	"packet.position_x_fp:i32",
 	"packet.position_y_fp:i32",
 	"packet.velocity_x_fp_per_s:i32",
@@ -116,7 +118,7 @@ const SECTION_9_3_AUDIT := {
 	"active_fifo_membership_and_counters": ["active_queue", "active_membership", "cell_stable_counters"],
 	"all_next_stable_ids": ["next_ids.packet", "next_ids.suction_job", "next_ids.drain_record", "next_ids.recovery_record"],
 	"all_fixed_point_remainders": ["remainders", "packet.position_x_remainder", "packet.position_y_remainder", "packet.gravity_remainder"],
-	"packet_future_state": ["packet.position_x_fp", "packet.position_y_fp", "packet.velocity_x_fp_per_s", "packet.velocity_y_fp_per_s", "packet.lifetime_ticks", "packet.lifecycle", "packet.stationary_ticks"],
+	"packet_future_state": ["packet.emission_tick", "packet.aim_angle", "packet.position_x_fp", "packet.position_y_fp", "packet.velocity_x_fp_per_s", "packet.velocity_y_fp_per_s", "packet.lifetime_ticks", "packet.lifecycle", "packet.stationary_ticks"],
 	"player_transform_velocity_grounded_movement": ["player.position_x_fp", "player.position_y_fp", "player.velocity_x_fp_per_s", "player.velocity_y_fp_per_s", "player.grounded", "player.movement_state"],
 	"player_immersion_and_recoil": ["player.immersion_state", "player.submerged_numerator", "player.immersion_samples", "player.recoil_x_fp_per_s", "player.recoil_y_fp_per_s"],
 	"immersion_hysteresis_counters": ["player.swim_entry_counter", "player.swim_exit_counter"],
@@ -210,6 +212,26 @@ static func default_state() -> Dictionary:
 			"tuning": _zero_hash(),
 			"occupancy": _zero_hash(),
 		},
+	}
+
+
+static func default_packet() -> Dictionary:
+	return {
+		"id": Contracts.FIRST_STABLE_ID,
+		"emission_tick": 0,
+		"aim_angle": 0,
+		"position_x_fp": 0,
+		"position_y_fp": 0,
+		"velocity_x_fp_per_s": 0,
+		"velocity_y_fp_per_s": 0,
+		"volume_q": 1,
+		"lifetime_ticks": 0,
+		"lifecycle": Contracts.PacketLifecycle.AIRBORNE,
+		"suction_reserved": false,
+		"stationary_ticks": 0,
+		"position_x_remainder": 0,
+		"position_y_remainder": 0,
+		"gravity_remainder": 0,
 	}
 
 
