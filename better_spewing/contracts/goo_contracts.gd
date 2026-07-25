@@ -115,8 +115,8 @@ static func validate_command_frame(frame: Variant) -> String:
 
 
 static func validate_next_stable_id(next_id: Variant) -> String:
-	if not _is_int_in_range(next_id, FIRST_STABLE_ID, MAX_STABLE_ID):
-		return "next stable ID must be uint32 in the inclusive range 1..0xffffffff"
+	if not _is_int_in_range(next_id, INVALID_STABLE_ID, MAX_STABLE_ID):
+		return "next stable ID must be uint32; zero is the explicit exhausted sentinel"
 	return ""
 
 
@@ -124,6 +124,8 @@ static func consume_stable_id(next_id: int) -> Dictionary:
 	var error := validate_next_stable_id(next_id)
 	if not error.is_empty():
 		return {"ok": false, "error": error}
+	if next_id == INVALID_STABLE_ID:
+		return {"ok": false, "error": "stable ID namespace is exhausted"}
 	if next_id == MAX_STABLE_ID:
 		return {
 			"ok": true,

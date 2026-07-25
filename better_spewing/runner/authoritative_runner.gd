@@ -79,3 +79,13 @@ func schedule_elapsed_microseconds(elapsed_us: int, source: Variant) -> Dictiona
 	scheduler_units %= MICROSECONDS_PER_SECOND
 	var result := run_ticks(source, ticks)
 	return {"ok": result.ok, "error": result.error, "ticks": ticks}
+
+
+func drain_packet_checked(packet_id: int) -> Dictionary:
+	var result: Dictionary = simulation.drain_packet(state, packet_id)
+	if not result.ok:
+		return {"ok": false, "error": result.error, "hash": Serializer.state_hash(state)}
+	var hash := Serializer.state_hash(state)
+	if hash.is_empty():
+		return {"ok": false, "error": Serializer.validate_state(state), "hash": ""}
+	return {"ok": true, "error": "", "hash": hash, "drain": result}

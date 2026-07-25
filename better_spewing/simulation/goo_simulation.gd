@@ -41,6 +41,9 @@ func accept_spew(state: Dictionary, frame: Dictionary) -> Dictionary:
 	var accumulated := old_rate_remainder + Tuning.VALUES.spew_rate_qps
 	var requested := _divide_trunc(accumulated, Tuning.VALUES.authoritative_hz)
 	var next_rate_remainder := accumulated % Tuning.VALUES.authoritative_hz
+	# Section 8.4 rate progression belongs to the held input stream. It advances
+	# before ownership/capacity checks even when the requested volume is rejected.
+	state.command_sampler.spew_rate_remainder = next_rate_remainder
 	requested = mini(requested, state.ledger.reserve)
 	if requested <= 0:
 		result.rejected = true
@@ -70,7 +73,6 @@ func accept_spew(state: Dictionary, frame: Dictionary) -> Dictionary:
 		return result
 
 	# Transaction begins only after the exact accepted amount and ownership are known.
-	state.command_sampler.spew_rate_remainder = next_rate_remainder
 	state.ledger.reserve -= requested
 	state.ledger.airborne += requested
 	if creating:

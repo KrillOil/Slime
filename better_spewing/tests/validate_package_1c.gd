@@ -7,6 +7,7 @@ const Serializer := preload("res://better_spewing/contracts/canonical_serializer
 const AimTable := preload("res://better_spewing/aim/aim_table.gd")
 const MouthDerivation := preload("res://better_spewing/runner/mouth_derivation.gd")
 const Simulation := preload("res://better_spewing/simulation/goo_simulation.gd")
+const Runner := preload("res://better_spewing/runner/authoritative_runner.gd")
 const ReplayCodec := preload("res://better_spewing/replay/replay_codec.gd")
 const Fixture := preload("res://better_spewing/tests/p1b_fixture_factory.gd")
 
@@ -26,6 +27,7 @@ func _init() -> void:
 	simulation = Simulation.new(directions)
 	_test_rate_and_release()
 	_test_atomic_acceptance_and_ids()
+	_test_id_exhaustion_atomicity()
 	_test_coalescing_predicates()
 	_test_recoil()
 	_test_packet_integration_and_lifetime()
@@ -61,6 +63,25 @@ func _test_rate_and_release() -> void:
 	_check(release_state.command_sampler.spew_rate_remainder == 0, "spew fractional remainder resets on release")
 	var resumed: Dictionary = simulation.accept_spew(release_state, _frame(release_state, Contracts.GooAction.SPEW, 0))
 	_check(resumed.accepted_q == 7 and release_state.command_sampler.spew_rate_remainder == 28, "new press starts without fractional carry")
+	var rejected_cadence := _state_with_reserve(0)
+	rejected_cadence.ledger.initial = 1600
+	rejected_cadence.ledger.drain = 1600
+	var rejected_remainders: Array[int] = []
+	for tick in 5:
+		rejected_cadence.tick = tick
+		var rejected: Dictionary = simulation.accept_spew(rejected_cadence, _frame(rejected_cadence, Contracts.GooAction.SPEW, 0))
+		rejected_remainders.append(rejected_cadence.command_sampler.spew_rate_remainder)
+		_check(rejected.rejected and rejected.accepted_q == 0, "held spew rejection owns no volume at cadence tick %d" % tick)
+	_check(rejected_remainders == [28, 56, 24, 52, 20], "held rejected ticks advance canonical 448/60 rate remainders")
+	rejected_cadence.ledger.reserve = 1600
+	rejected_cadence.ledger.drain = 0
+	rejected_cadence.tick = 5
+	var freed_first: Dictionary = simulation.accept_spew(rejected_cadence, _frame(rejected_cadence, Contracts.GooAction.SPEW, 0))
+	rejected_cadence.tick = 6
+	var freed_second: Dictionary = simulation.accept_spew(rejected_cadence, _frame(rejected_cadence, Contracts.GooAction.SPEW, 0))
+	_check(freed_first.accepted_q == 7 and freed_second.accepted_q == 8 and rejected_cadence.command_sampler.spew_rate_remainder == 16, "capacity-free ticks resume canonical cadence without frozen or banked output")
+	simulation.step(rejected_cadence, _frame(rejected_cadence, Contracts.GooAction.NONE, 0))
+	_check(rejected_cadence.command_sampler.spew_rate_remainder == 0, "release resets progressed rejection cadence")
 
 
 func _test_atomic_acceptance_and_ids() -> void:
@@ -82,10 +103,10 @@ func _test_atomic_acceptance_and_ids() -> void:
 	var limited_result: Dictionary = simulation.accept_spew(limited, _frame(limited, Contracts.GooAction.SPEW, 0))
 	_check(limited_result.accepted_q == 3 and limited.ledger.reserve == 0 and limited.ledger.airborne == 3, "reserve shortage accepts and debits only the exact available amount")
 	var empty := _state_with_reserve(0)
-	var empty_before := Serializer.serialize_state_checked(empty)
+	var empty_before: Dictionary = empty.duplicate(true)
 	var empty_result: Dictionary = simulation.accept_spew(empty, _frame(empty, Contracts.GooAction.SPEW, 0))
-	var empty_after := Serializer.serialize_state_checked(empty)
-	_check(empty_result.rejected and empty_before.bytes == empty_after.bytes, "empty reserve rejects without rate, ID, ledger, packet, or recoil mutation")
+	_check(empty_result.rejected and _equal_except_spew_rate(empty_before, empty), "empty reserve rejection changes only canonical held-input rate progression")
+	_check(empty.command_sampler.spew_rate_remainder == 28, "empty reserve rejection advances spew rate remainder")
 
 	var rejected := _full_cap_state()
 	rejected.command_sampler.spew_rate_remainder = 17
@@ -95,11 +116,11 @@ func _test_atomic_acceptance_and_ids() -> void:
 	rejected.player.recoil_x_fp_per_s = 9
 	rejected.player.recoil_y_fp_per_s = -8
 	rejected.packets[-1].aim_angle = 5
-	var before := Serializer.serialize_state_checked(rejected)
+	var before: Dictionary = rejected.duplicate(true)
 	var rejection: Dictionary = simulation.accept_spew(rejected, _frame(rejected, Contracts.GooAction.SPEW, 6))
-	var after := Serializer.serialize_state_checked(rejected)
 	_check(rejection.rejected and rejection.accepted_q == 0, "incompatible cap request rejects before acceptance")
-	_check(before.ok and after.ok and before.bytes == after.bytes, "rejection leaves ledger, IDs, packets, recoil, and remainders byte-identical")
+	_check(_equal_except_spew_rate(before, rejected), "rejection leaves ledger, IDs, packets, recoil, and non-rate remainders byte-identical")
+	_check(rejected.command_sampler.spew_rate_remainder == 45, "cap rejection advances held-input rate remainder")
 
 
 func _test_coalescing_predicates() -> void:
@@ -130,10 +151,9 @@ func _test_coalescing_predicates() -> void:
 		var state := _compatible_cap_state()
 		predicate[1].call(state)
 		_reconcile_cap_ledger(state)
-		var before := Serializer.serialize_state_checked(state)
+		var before: Dictionary = state.duplicate(true)
 		var result: Dictionary = simulation.accept_spew(state, _frame(state, Contracts.GooAction.SPEW, 700))
-		var after := Serializer.serialize_state_checked(state)
-		_check(result.rejected and before.ok and after.ok and before.bytes == after.bytes, "coalescing rejects independently when predicate fails: %s" % predicate[0])
+		_check(result.rejected and _equal_except_spew_rate(before, state), "coalescing rejection changes only rate progression when predicate fails: %s" % predicate[0])
 
 	var partial := _compatible_cap_state()
 	partial.packets[-1].volume_q = 14
@@ -143,6 +163,51 @@ func _test_coalescing_predicates() -> void:
 	var partial_result: Dictionary = simulation.accept_spew(partial, _frame(partial, Contracts.GooAction.SPEW, 700))
 	_check(partial_result.merged and partial_result.accepted_q == 2 and partial.packets[-1].volume_q == 16, "cap merge accepts exactly available two-quanta capacity")
 	_check(partial.ledger.reserve == reserve_before - 2 and partial.next_ids.packet == id_before and _ledger_error(partial) == 0, "partial cap acceptance debits only accepted amount with no ID")
+
+
+func _test_id_exhaustion_atomicity() -> void:
+	var all_exhausted := Schema.default_state()
+	for id_namespace in all_exhausted.next_ids:
+		all_exhausted.next_ids[id_namespace] = Contracts.INVALID_STABLE_ID
+	_check(Serializer.serialize_state_checked(all_exhausted).ok, "all canonical next-ID namespaces serialize explicit zero exhaustion sentinels")
+	_check(not Contracts.consume_stable_id(Contracts.INVALID_STABLE_ID).ok, "exhausted namespace cannot allocate or reuse ID zero")
+
+	var packet_state := _state_with_reserve(1600)
+	packet_state.next_ids.packet = Contracts.MAX_STABLE_ID
+	var packet_runner := Runner.new(packet_state)
+	var final_allocation: Dictionary = packet_runner.step_frame(_frame(packet_runner.state, Contracts.GooAction.SPEW, 0))
+	_check(final_allocation.ok and final_allocation.simulation.created, "runner succeeds while allocating terminal packet ID 0xffffffff")
+	_check(packet_runner.state.packets[-1].id == Contracts.MAX_STABLE_ID and packet_runner.state.next_ids.packet == Contracts.INVALID_STABLE_ID, "terminal packet allocation stores nonzero max ID and explicit exhausted next-ID")
+	_check(not final_allocation.hash.is_empty() and Serializer.serialize_state_checked(packet_runner.state).ok, "terminal packet allocation leaves hash-valid canonical state")
+	packet_runner.state.packets[-1].lifecycle = Contracts.PacketLifecycle.STATIONARY_DEPOSITION
+	packet_runner.state.packets[-1].stationary_ticks = 1
+	packet_runner.state.player.recoil_x_fp_per_s = 0
+	packet_runner.state.player.recoil_y_fp_per_s = 0
+	var ledger_before: Dictionary = packet_runner.state.ledger.duplicate(true)
+	var packets_before: Array = packet_runner.state.packets.duplicate(true)
+	var recoil_remainders := Vector3i(packet_runner.state.remainders.player_recoil_x, packet_runner.state.remainders.player_recoil_y, packet_runner.state.remainders.recoil_fraction)
+	var velocity_before := Vector2i(packet_runner.state.player.velocity_x_fp_per_s, packet_runner.state.player.velocity_y_fp_per_s)
+	var exhausted_attempt: Dictionary = packet_runner.step_frame(_frame(packet_runner.state, Contracts.GooAction.SPEW, 0))
+	_check(exhausted_attempt.ok and exhausted_attempt.simulation.rejected, "runner reports later exhausted packet creation as a hash-valid rejected action")
+	_check(packet_runner.state.ledger == ledger_before and packet_runner.state.packets == packets_before and packet_runner.state.next_ids.packet == 0, "exhausted runner rejection leaves ledger, packets, and packet namespace untouched")
+	_check(Vector3i(packet_runner.state.remainders.player_recoil_x, packet_runner.state.remainders.player_recoil_y, packet_runner.state.remainders.recoil_fraction) == recoil_remainders and Vector2i(packet_runner.state.player.velocity_x_fp_per_s, packet_runner.state.player.velocity_y_fp_per_s) == velocity_before, "exhausted runner rejection leaves recoil remainders and player velocity untouched")
+	_check(packet_runner.state.command_sampler.spew_rate_remainder == 56, "exhausted runner rejection still advances held-input rate cadence")
+
+	var drain_state := _state_with_reserve(1580)
+	drain_state.ledger.initial = 1600
+	drain_state.ledger.airborne = 20
+	drain_state.packets = [_packet(1, 10), _packet(2, 10)]
+	drain_state.next_ids.packet = 3
+	drain_state.next_ids.drain_record = Contracts.MAX_STABLE_ID
+	var drain_runner := Runner.new(drain_state)
+	var final_drain: Dictionary = drain_runner.drain_packet_checked(1)
+	_check(final_drain.ok and drain_runner.state.drain_queue[-1].id == Contracts.MAX_STABLE_ID and drain_runner.state.next_ids.drain_record == 0, "runner drain API allocates terminal record ID and records exhaustion")
+	_check(not final_drain.hash.is_empty() and Serializer.serialize_state_checked(drain_runner.state).ok, "terminal drain allocation leaves hash-valid canonical state")
+	var drain_before := Serializer.serialize_state_checked(drain_runner.state)
+	var rejected_drain: Dictionary = drain_runner.drain_packet_checked(2)
+	var drain_after := Serializer.serialize_state_checked(drain_runner.state)
+	_check(not rejected_drain.ok and "exhausted" in rejected_drain.error, "later drain allocation rejects explicit exhausted namespace")
+	_check(drain_before.ok and drain_after.ok and drain_before.bytes == drain_after.bytes and drain_runner.state.packets[0].id == 2, "exhausted drain rejection leaves source packet and all canonical state untouched")
 
 
 func _test_recoil() -> void:
@@ -262,11 +327,10 @@ func _test_packet_cap_stress() -> void:
 		conserved = conserved and _ledger_error(state) == 0 and state.packets.size() == 192
 	state.tick = 13
 	state.packets[-1].emission_tick = 12
-	var before := Serializer.serialize_state_checked(state)
+	var before: Dictionary = state.duplicate(true)
 	var rejected: Dictionary = simulation.accept_spew(state, _frame(state, Contracts.GooAction.SPEW, 700))
-	var after := Serializer.serialize_state_checked(state)
 	_check(accepted == [7, 7, 1] and state.packets[-1].volume_q == 16, "cap stress coalesces 15 quanta only up to exact packet capacity")
-	_check(rejected.rejected and before.bytes == after.bytes, "full merged packet rejects next cap request without mutation")
+	_check(rejected.rejected and _equal_except_spew_rate(before, state), "full merged packet rejection advances only rate state")
 	_check(conserved and _ledger_error(state) == 0 and _packet_volume(state) == state.ledger.airborne, "packet cap stress has zero volume loss")
 
 
@@ -298,13 +362,26 @@ func _test_visualization_scene() -> void:
 	var packed := load("res://better_spewing/visualization/isolated_packet_simulation.tscn")
 	var scene_ok := packed is PackedScene
 	var instance: Node = packed.instantiate() if scene_ok else null
+	if instance != null:
+		instance._ready()
 	var visualizer: Node = instance.get_node("PacketVisualizer") if instance != null else null
-	var source := [_packet(1, 7)]
+	var sequence_ok: bool = (
+		instance != null
+		and instance.authoritative_snapshots.size() == 3
+		and not instance.authoritative_snapshots[0].is_empty()
+		and instance.authoritative_snapshots[0][0].position_x_fp
+			!= instance.authoritative_snapshots[1][0].position_x_fp
+		and instance.authoritative_snapshots[1][0].position_x_fp
+			!= instance.authoritative_snapshots[2][0].position_x_fp
+	)
+	_check(scene_ok and visualizer != null and sequence_ok, "isolated scene advances real authoritative packet positions over three fixed ticks")
+	_check(visualizer != null and visualizer.packet_snapshot == instance.runner.state.packets, "render snapshot exactly matches authoritative packet snapshot before drawing")
+	var state_position_before: int = instance.runner.state.packets[0].position_x_fp if instance != null else 0
+	var state_hash_before: String = instance.authoritative_hash_before_render if instance != null else ""
 	if visualizer != null:
-		visualizer.set_packet_snapshot(source)
-		source[0].position_x_fp = 999
-	_check(scene_ok and visualizer != null and visualizer.packet_snapshot.size() == 1, "isolated code-drawn packet visualization scene loads deterministically")
-	_check(visualizer != null and visualizer.packet_snapshot[0].position_x_fp != 999, "visualizer consumes a read-only duplicate and cannot mutate authority")
+		visualizer.packet_snapshot[0].position_x_fp += 999
+	_check(instance != null and instance.runner.state.packets[0].position_x_fp == state_position_before, "render-side packet mutation cannot flow back into authoritative state")
+	_check(instance != null and Serializer.state_hash(instance.runner.state) == state_hash_before, "render-side mutation cannot change authoritative complete-state hash")
 	if instance != null:
 		instance.free()
 
@@ -402,6 +479,14 @@ func _divide_trunc(numerator: int, denominator: int) -> int:
 	if numerator >= 0:
 		return numerator / denominator
 	return -((-numerator) / denominator)
+
+
+func _equal_except_spew_rate(before: Dictionary, after: Dictionary) -> bool:
+	var normalized: Dictionary = after.duplicate(true)
+	normalized.command_sampler.spew_rate_remainder = before.command_sampler.spew_rate_remainder
+	var before_bytes := Serializer.serialize_state_checked(before)
+	var after_bytes := Serializer.serialize_state_checked(normalized)
+	return before_bytes.ok and after_bytes.ok and before_bytes.bytes == after_bytes.bytes
 
 
 func _check(condition: bool, label: String) -> void:
