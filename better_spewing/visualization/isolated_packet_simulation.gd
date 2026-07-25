@@ -23,6 +23,16 @@ func _ready() -> void:
 		"solids": [Rect2(200.0, 0.0, 10.0, 540.0)],
 	})
 	runner = Runner.new(state, room)
+	var blocked_settled := 0
+	for y in room.height_cells:
+		for x in room.width_cells:
+			if RoomOccupancy.is_solid(room, x, y):
+				continue
+			var cell_id: int = y * room.width_cells + x
+			runner.state.settled_cells[cell_id] = 16
+			blocked_settled += 16
+	runner.state.ledger.initial += blocked_settled
+	runner.state.ledger.settled = blocked_settled
 	for action in [
 		Contracts.GooAction.SPEW,
 		Contracts.GooAction.NONE,

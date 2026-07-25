@@ -8,14 +8,14 @@ const Contracts := preload("res://better_spewing/contracts/goo_contracts.gd")
 
 const EXPECTED_REPLAY_SHA256 := "df983d0b9706cd6e7beeaf7b3f7f9d9d236b600bda9e65403b12bb50198c4288"
 const EXPECTED_CHECKPOINTS: Array[String] = [
-	"9ba8b04c1caf175b9d0e254be58226b337b9ce4f88c82a525efd453e3077f508",
-	"7897b7cecda980f12ad6155a01d97313676515e40606f543f34806bda79bd3bd",
-	"599cc70e22d77468411d8e7f5adbeb812c2aa51944a4409230a04eff1da09ba4",
-	"68fc15374e029249a17af34346b6bf5756e0695a9fb7a402f549ea6a657b4373",
-	"bc480ec41fe9a0fe3b0fea3eaac1901dbfcd4fda66bbafa22ef29ec6711a8cdb",
-	"5d5fcfcab2c8ca394a8b5f36f8a8028248305232de9f23324c65a23670c13294",
+	"b30443a992dd61a498b2ca085e33ee4c92e0acadf3f04f576ec94302c6e84974",
+	"7120c95d383fe687c1d2754a8296cce878788ef3c55889786b432caa0a1e5ada",
+	"0ecf92a43b35b9bdb49b6f6f2f53e871789ed86acc17784ee38f383fce0205be",
+	"62b52bcbb6f3b7f02edff2d3b8f5a3f160f644a21f1f07ed27a17a71e191127c",
+	"984afdc23038ba2f383ec52d037217ee739f24a8383b9dc95a75f9583df09688",
+	"bea631557751d5c30778934d6a36c0bde109f339b7019a62de63ffe331588e60",
 ]
-const EXPECTED_FINAL_SHA256 := "5d5fcfcab2c8ca394a8b5f36f8a8028248305232de9f23324c65a23670c13294"
+const EXPECTED_FINAL_SHA256 := "bea631557751d5c30778934d6a36c0bde109f339b7019a62de63ffe331588e60"
 
 
 func _init() -> void:
@@ -39,9 +39,9 @@ func _init() -> void:
 		quit(1)
 		return
 	var replay_hash := _sha256(bytes)
-	print("P1D_REPLAY bytes=%d replay_sha256=%s checkpoints=%s final=%s stationary=%d drain_q=%d" % [
+	print("P1D_REPLAY bytes=%d replay_sha256=%s checkpoints=%s final=%s stationary=%d settled_q=%d drain_q=%d" % [
 		bytes.size(), replay_hash, ",".join(PackedStringArray(runner.checkpoint_hashes)), result.hash,
-		_stationary_count(runner.state.packets), runner.state.ledger.drain,
+		_stationary_count(runner.state.packets), runner.state.ledger.settled, runner.state.ledger.drain,
 	])
 	if not EXPECTED_REPLAY_SHA256.is_empty() and replay_hash != EXPECTED_REPLAY_SHA256:
 		printerr("Package 1D replay byte fixture mismatch")
@@ -53,8 +53,8 @@ func _init() -> void:
 		printerr("Package 1D complete-state checkpoint fixture mismatch")
 		quit(1)
 		return
-	if _stationary_count(runner.state.packets) != 1 or runner.state.ledger.drain <= 0:
-		printerr("Package 1D replay did not exercise both collision and bounds drain")
+	if _stationary_count(runner.state.packets) != 0 or runner.state.ledger.settled <= 0 or runner.state.ledger.drain <= 0:
+		printerr("Package 1D replay did not exercise both collision deposition and bounds drain")
 		quit(1)
 		return
 	quit(0)

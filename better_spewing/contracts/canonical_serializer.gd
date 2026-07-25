@@ -260,10 +260,15 @@ static func _validate_cells(state: Dictionary) -> String:
 		return "active_membership must be PackedByteArray"
 	if typeof(state.cell_stable_counters) != TYPE_ARRAY:
 		return "cell_stable_counters must be an Array"
-	if state.settled_cells.size() != state.cell_stable_counters.size():
-		return "settled_cells and stable counters must have equal length"
-	if not state.settled_cells.is_empty() and state.active_membership.size() != ceili(state.settled_cells.size() / 8.0):
-		return "active_membership bitset length mismatch"
+	var grid_cell_count: int = Tuning.VALUES.grid_width_cells * Tuning.VALUES.grid_height_cells
+	var membership_bytes: int = (grid_cell_count + 7) / 8
+	if state.settled_cells.is_empty():
+		if not state.cell_stable_counters.is_empty() or not state.active_membership.is_empty() or not state.active_queue.is_empty():
+			return "empty settled grid requires empty scheduling state"
+	elif state.settled_cells.size() != grid_cell_count \
+			or state.cell_stable_counters.size() != grid_cell_count \
+			or state.active_membership.size() != membership_bytes:
+		return "initialized settled grid dimensions mismatch"
 	for volume in state.settled_cells:
 		if not _is_uint(volume, 16) or volume > Tuning.VALUES.cell_capacity_q:
 			return "settled cell volume is out of range"

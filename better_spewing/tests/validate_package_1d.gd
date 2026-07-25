@@ -215,7 +215,7 @@ func _test_simulation_collision_and_drain() -> void:
 	_check(packet.impact_cell_id == 5 * 96 + 4 and packet.impact_normal_x == -1 and packet.impact_normal_y == 0, "serialized impact cell and normal retain corner-sensitive contact authority")
 	_check(_cell_for_fp(Vector2i(packet.position_x_fp, packet.position_y_fp)) == Vector2i(4, 5) and not RoomOccupancy.is_solid(wall, 4, 5), "real simulation contact position maps exactly to serialized non-solid impact cell")
 	_check(packet.position_x_remainder == 0 and packet.position_y_remainder == 0 and packet.gravity_remainder == 5, "collision resets position remainders and preserves the computed gravity remainder")
-	_check(state.ledger.airborne == 1 and state.ledger.settled == 0 and state.settled_cells.is_empty(), "impacted volume remains wholly AIRBORNE with no settled state")
+	_check(state.ledger.airborne == 1 and state.ledger.settled == 0 and _all_zero_ints(state.settled_cells), "direct collision integration remains wholly AIRBORNE before the Package 2A deposition phase")
 	_check(Serializer.serialize_state_checked(state).ok, "stationary contact packet is canonical and hash-valid")
 	var simulation_cases := [
 		[Vector2i(45, 55) * FP, Vector2i(720, 0) * FP],
@@ -314,7 +314,7 @@ func _test_collision_replay() -> void:
 	for packet in runner.state.packets:
 		if packet.lifecycle == Contracts.PacketLifecycle.STATIONARY_DEPOSITION:
 			stationary += 1
-	_check(stationary == 1 and runner.state.ledger.drain > 0 and runner.state.ledger.airborne > 0, "nontrivial replay deterministically exercises collision and bounds drain without volume loss")
+	_check(stationary == 0 and runner.state.ledger.drain > 0 and runner.state.ledger.settled > 0 and runner.state.ledger.airborne == 0, "reconciled replay deterministically exercises collision deposition and bounds drain without volume loss")
 
 
 func _empty_context(identifier: String) -> Dictionary:
@@ -353,6 +353,13 @@ func _frame(state: Dictionary, action: int, aim: int) -> Dictionary:
 func _all_zero(bytes: PackedByteArray) -> bool:
 	for byte in bytes:
 		if byte != 0:
+			return false
+	return true
+
+
+func _all_zero_ints(values: Array) -> bool:
+	for value in values:
+		if value != 0:
 			return false
 	return true
 

@@ -6,6 +6,7 @@ const AimTable := preload("res://better_spewing/aim/aim_table.gd")
 const MouthDerivation := preload("res://better_spewing/runner/mouth_derivation.gd")
 const RoomOccupancy := preload("res://better_spewing/collision/room_occupancy.gd")
 const GridTraversal := preload("res://better_spewing/collision/grid_traversal.gd")
+const SettledDeposition := preload("res://better_spewing/deposition/settled_deposition.gd")
 
 const DIRECTION_SCALE := 1_000_000
 const POSITION_DIVISOR := 60
@@ -23,9 +24,15 @@ func _init(direction_entries: Array[Vector2i] = []) -> void:
 
 
 func configure_room(state: Dictionary, context: Dictionary) -> String:
+	var state_before: Dictionary = state.duplicate(true)
 	var error := RoomOccupancy.bind_state(state, context)
 	if error.is_empty():
+		error = SettledDeposition.initialize_grid(state)
+	if error.is_empty():
 		room_context = context.duplicate(true)
+	else:
+		state.clear()
+		state.merge(state_before, true)
 	return error
 
 
@@ -52,8 +59,18 @@ func step(state: Dictionary, frame: Dictionary) -> Dictionary:
 		emission.ok = false
 		emission.error = integration.error
 		return emission
+	var deposition := {"ok": true, "error": "", "packets": []}
+	if not room_context.is_empty():
+		deposition = SettledDeposition.process_stationary_packets(state, room_context)
+	if not deposition.ok:
+		state.clear()
+		state.merge(simulation_snapshot, true)
+		emission.ok = false
+		emission.error = deposition.error
+		return emission
 	emission.ok = true
 	emission.error = ""
+	emission.deposition = deposition
 	return emission
 
 
