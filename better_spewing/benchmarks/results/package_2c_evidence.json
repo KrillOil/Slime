@@ -1,0 +1,207 @@
+{
+  "authoritative": false,
+  "deferred_not_mocked": [
+    "128 suction jobs",
+    "four coverable hazard spans",
+    "repeated player immersion transitions",
+    "production Rooms 1-4"
+  ],
+  "desktop": {
+    "assessment": {
+      "preliminary_normal_p95_le_2ms": false,
+      "steady_authoritative_counts": true,
+      "stress_lanes_reached": true,
+      "stress_max_le_8ms": false,
+      "stress_p95_le_4ms": false,
+      "stress_p99_le_6ms": false,
+      "sustained_60_fps": false,
+      "whole_frame_p95_le_16_67ms": false,
+      "zero_category_error": true,
+      "zero_gameplay_affecting_dropped_ticks": false,
+      "zero_ledger_error": true,
+      "zero_replay_divergence": true
+    },
+    "gameplay_affecting_dropped_ticks": 7315,
+    "maximum_authoritative_tick": 449,
+    "measured_fps": 3.74079633922504,
+    "measured_seconds": 120.027919,
+    "normal_simulation_ms_preliminary": {
+      "max": 42.718,
+      "mean": 31.3239020044543,
+      "p95": 36.294,
+      "p99": 40.014
+    },
+    "sample_count": 449,
+    "stress_simulation_ms": {
+      "max": 291.162,
+      "mean": 201.561541202673,
+      "p95": 223.489,
+      "p99": 244.323
+    },
+    "timestamp_utc": "2026-07-25T10:04:58",
+    "whole_frame_ms": {
+      "max": 375.487,
+      "mean": 267.53128285078,
+      "p95": 295.352,
+      "p99": 326.076
+    }
+  },
+  "excluded_from_state_replay_and_hashes": true,
+  "fallback_decision": {
+    "active_cell_reduction": "Not applied. It cannot reduce packet deposition or canonical hashing, whose measured lower bound already fails.",
+    "authoritative_tuning_changed": false,
+    "cell_size_12_or_15": "Not applied. The dominant 192-packet Manhattan-radius-4 deposition search retains the same packet and candidate counts; even eliminating flow entirely leaves the measured deposition plus hash floor above target. Rebuilding masks/replays therefore cannot make this declared workload meet the threshold.",
+    "cosmetics": "Not applicable to the simulation failure; code-drawn rendering is required and is outside the timed runner tick.",
+    "lateral_pair_reduction": "Not applied. The profiled median deposition plus canonical hash floor is 138.709 ms before lateral flow, already above the 8 ms maximum target.",
+    "sleep_aggressiveness": "Not applied. The declared saturation state is reconstructed for each sample, so sleep timing cannot reduce this measured tick.",
+    "terminal_disposition": "Per canonical Section 19.1, stop before production room migration and return the reduced basin-column model proposal requirement for Creator approval.",
+    "thresholds_passed": false
+  },
+  "integrity": {
+    "desktop_category_error_count": 0,
+    "desktop_ledger_error_count": 0,
+    "desktop_replay_divergence_count": 0,
+    "desktop_steady_counts": {
+      "active": 4261,
+      "drain_records": 1,
+      "packets": 192,
+      "settled_nonzero": 4651,
+      "steady": true
+    },
+    "desktop_stress_lanes_reached": true,
+    "web_category_error_count": 0,
+    "web_ledger_error_count": 0,
+    "web_replay_divergence_count": 0,
+    "web_steady_counts": {
+      "active": 4261,
+      "drain_records": 1,
+      "packets": 192,
+      "settled_nonzero": 4651,
+      "steady": true
+    },
+    "web_stress_lanes_reached": true
+  },
+  "machine": {
+    "chrome_stable": "150.0.7871.184",
+    "cpu": "AMD Ryzen 5 3600 6-Core Processor",
+    "godot": "4.6.3.stable.official.7d41c59c4",
+    "gpu": "NVIDIA GeForce GTX 1660 SUPER",
+    "gpu_driver_version": "32.0.16.1062",
+    "ram_bytes": 17129467904,
+    "ram_gib": 15.95,
+    "windows_build": "26200.8875",
+    "windows_display_version": "25H2",
+    "windows_product": "Windows 10 Pro"
+  },
+  "measurement_contract": {
+    "chrome_command": "chrome.exe --user-data-dir=<fresh temporary profile> --no-first-run --no-default-browser-check --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows --window-size=960,540 http://127.0.0.1:8765/index.html",
+    "chrome_watchdog_seconds": 170,
+    "desktop_command": "Godot_v4.6.3-stable_win64_console.exe --path \"C:\\Users\\User\\Documents\\Slime Gulper\" res://better_spewing/benchmarks/flow_benchmark_scene.tscn",
+    "desktop_export_mode": "debug editor scene",
+    "developer_tools_open": false,
+    "measured_seconds_target": 120,
+    "viewport": [
+      960,
+      540
+    ],
+    "warmup_seconds": 10,
+    "web_export_command": "Godot_v4.6.3-stable_win64_console.exe --headless --path \"<independent temporary project copy>\" --export-release Web \"<temporary project>\\build\\web\\index.html\"",
+    "web_export_mode": "Godot Web release",
+    "web_export_pck_bytes": 316064,
+    "web_export_pck_sha256": "dcd92c795d77be325c8bff2e4a9962edd13404ad718f48361ab8659c670eba0e"
+  },
+  "profile_original": {
+    "median_us": {
+      "deep_copy": 903,
+      "deposition": 113527,
+      "flow": 81601,
+      "full_runner_tick": 205168,
+      "state_hash": 25182
+    },
+    "samples": 5,
+    "schema": "package-2c-flow-profile-v1",
+    "timings": {
+      "deep_copy_us": [
+        903,
+        1009,
+        1767,
+        857,
+        894
+      ],
+      "deposition_us": [
+        113527,
+        102345,
+        138549,
+        114292,
+        94049
+      ],
+      "flow_us": [
+        82321,
+        82331,
+        81453,
+        81601,
+        75219
+      ],
+      "full_runner_tick_us": [
+        203429,
+        257802,
+        212620,
+        205168,
+        200163
+      ],
+      "state_hash_us": [
+        25855,
+        26173,
+        25182,
+        24751,
+        24066
+      ]
+    }
+  },
+  "schema": "package-2c-evidence-v1",
+  "tooling_notes": [
+    "Initial export attempt failed because the target directory did not exist; directory creation made the identical export command pass.",
+    "A detached Chrome/server attempt inherited output handles and hung; one exact orphan Python server was terminated.",
+    "The accepted web measurement used one foreground orchestrator with a 170-second watchdog and exact Chrome process-tree teardown."
+  ],
+  "web_installed_stable_chrome": {
+    "assessment": {
+      "preliminary_normal_p95_le_2ms": false,
+      "steady_authoritative_counts": true,
+      "stress_lanes_reached": true,
+      "stress_max_le_8ms": false,
+      "stress_p95_le_4ms": false,
+      "stress_p99_le_6ms": false,
+      "sustained_60_fps": false,
+      "whole_frame_p95_le_16_67ms": false,
+      "zero_category_error": true,
+      "zero_gameplay_affecting_dropped_ticks": false,
+      "zero_ledger_error": true,
+      "zero_replay_divergence": true
+    },
+    "gameplay_affecting_dropped_ticks": 7386,
+    "maximum_authoritative_tick": 393,
+    "measured_fps": 3.2719216670316,
+    "measured_seconds": 120.1129,
+    "normal_simulation_ms_preliminary": {
+      "max": 49.7,
+      "mean": 35.0287531806616,
+      "p95": 44.5,
+      "p99": 48.7
+    },
+    "sample_count": 393,
+    "stress_simulation_ms": {
+      "max": 325.4,
+      "mean": 225.084223918575,
+      "p95": 276.7,
+      "p99": 305.1
+    },
+    "timestamp_utc": "2026-07-25T13:39:09",
+    "whole_frame_ms": {
+      "max": 420.7,
+      "mean": 306.109160305343,
+      "p95": 369.7,
+      "p99": 411.6
+    }
+  }
+}

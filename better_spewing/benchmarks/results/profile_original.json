@@ -1,0 +1,48 @@
+{
+  "median_us": {
+    "deep_copy": 903,
+    "deposition": 113527,
+    "flow": 81601,
+    "full_runner_tick": 205168,
+    "state_hash": 25182
+  },
+  "samples": 5,
+  "schema": "package-2c-flow-profile-v1",
+  "timings": {
+    "deep_copy_us": [
+      903,
+      1009,
+      1767,
+      857,
+      894
+    ],
+    "deposition_us": [
+      113527,
+      102345,
+      138549,
+      114292,
+      94049
+    ],
+    "flow_us": [
+      82321,
+      82331,
+      81453,
+      81601,
+      75219
+    ],
+    "full_runner_tick_us": [
+      203429,
+      257802,
+      212620,
+      205168,
+      200163
+    ],
+    "state_hash_us": [
+      25855,
+      26173,
+      25182,
+      24751,
+      24066
+    ]
+  }
+}

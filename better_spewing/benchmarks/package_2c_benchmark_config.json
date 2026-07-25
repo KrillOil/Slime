@@ -1,0 +1,28 @@
+{
+  "schema": "package-2c-flow-benchmark-v1",
+  "viewport": [960, 540],
+  "authoritative_hz": 60,
+  "warmup_seconds": 10,
+  "measured_seconds": 120,
+  "stress_targets": {
+    "airborne_packets": 192,
+    "active_cells": 1536,
+    "lateral_pairs": 2048,
+    "drain_ready_q_with_full_reserve": 16,
+    "sleeping_cells_minimum": 100,
+    "code_drawn_rendering": true
+  },
+  "normal_label": "isolated simulation/test-room workload; production rooms are not migrated",
+  "deferred": [
+    "128 suction jobs",
+    "four coverable hazard spans",
+    "repeated player immersion transitions"
+  ],
+  "thresholds_ms": {
+    "normal_simulation_p95": 2.0,
+    "stress_simulation_p95": 4.0,
+    "stress_simulation_p99": 6.0,
+    "stress_simulation_max": 8.0,
+    "whole_frame_p95": 16.67
+  }
+}
