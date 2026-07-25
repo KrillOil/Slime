@@ -273,8 +273,9 @@ static func _validate_cells(state: Dictionary) -> String:
 		if not _is_uint(volume, 16) or volume > Tuning.VALUES.cell_capacity_q:
 			return "settled cell volume is out of range"
 	for counter in state.cell_stable_counters:
-		if not _is_uint(counter, 16) or counter > 12:
-			return "cell stable counter must be in canonical range 0..12"
+		if not _is_uint(counter, 16) \
+				or counter > Tuning.VALUES.sleep_threshold_processed_ticks:
+			return "cell stable counter must not exceed tuned sleep threshold"
 	var seen := {}
 	for cell_id in state.active_queue:
 		if not _is_uint(cell_id, 32) or cell_id >= state.settled_cells.size():
@@ -282,7 +283,8 @@ static func _validate_cells(state: Dictionary) -> String:
 		if seen.has(cell_id):
 			return "active queue contains a duplicate cell ID"
 		seen[cell_id] = true
-		if state.cell_stable_counters[cell_id] >= 12:
+		if state.cell_stable_counters[cell_id] \
+				>= Tuning.VALUES.sleep_threshold_processed_ticks:
 			return "sleeping cell cannot remain in active queue"
 	for cell_id in state.settled_cells.size():
 		var member: bool = (

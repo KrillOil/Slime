@@ -6,16 +6,16 @@ const Runner := preload("res://better_spewing/runner/authoritative_runner.gd")
 const Fixture := preload("res://better_spewing/tests/p1d_fixture_factory.gd")
 const Contracts := preload("res://better_spewing/contracts/goo_contracts.gd")
 
-const EXPECTED_REPLAY_SHA256 := "2a72c87ae8dc03a99c67bcd5c07d9bfa8615d0cfff5980f790fd3eca64ae04fa"
+const EXPECTED_REPLAY_SHA256 := "df983d0b9706cd6e7beeaf7b3f7f9d9d236b600bda9e65403b12bb50198c4288"
 const EXPECTED_CHECKPOINTS: Array[String] = [
-	"ce1ebaa8d6c40744485a3946fb18820fc452e6cd2eef8cb1cdf0d2bfd9303655",
-	"b0ee7285733f68b50f27e0fa736bb154576eda4b0755affdca202eb4d3285209",
-	"dac59461c30e37f1ed38ec734372eda4180e652cea0ef14df0cfdf4d23ff4a9b",
-	"fdcce52f7eef060c871e7035c527f658d4a4abf43ce88b10c4322424d7c997ae",
-	"19b6214c83a86d4cd1c673f53e263e96c52c891a5737d75296a15d06746d5d43",
-	"7bc8156fb2052e20502be768cc882c98b82c790c38551ec0296bafc92bddb769",
+	"b30443a992dd61a498b2ca085e33ee4c92e0acadf3f04f576ec94302c6e84974",
+	"7120c95d383fe687c1d2754a8296cce878788ef3c55889786b432caa0a1e5ada",
+	"92733a2b9f9d63f5e957a9af5a65dc20da9b66362135b153ebe2c1990f6847cc",
+	"a21ab4fe286ae63df599cf81adb0115951834fcf9730cacf77fbe425785890ee",
+	"7b82debd2d4ae08c76bff0a6e0c0174ad649e6cb8d65f9520509adfc2b6fc5d3",
+	"52e674d858d9bf9b42ac8afbdad864cba27b1b6eeda8481aa95daed4d70f0b61",
 ]
-const EXPECTED_FINAL_SHA256 := "7bc8156fb2052e20502be768cc882c98b82c790c38551ec0296bafc92bddb769"
+const EXPECTED_FINAL_SHA256 := "52e674d858d9bf9b42ac8afbdad864cba27b1b6eeda8481aa95daed4d70f0b61"
 
 
 func _init() -> void:

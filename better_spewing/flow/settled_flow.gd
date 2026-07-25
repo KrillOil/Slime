@@ -6,7 +6,6 @@ const RoomOccupancy := preload("res://better_spewing/collision/room_occupancy.gd
 const WIDTH := 96
 const HEIGHT := 54
 const CELL_COUNT := WIDTH * HEIGHT
-const STABLE_TICKS_TO_SLEEP := 12
 
 
 static func activate_cells(state: Dictionary, cell_ids: Array) -> void:
@@ -92,9 +91,10 @@ static func step(state: Dictionary, context: Dictionary) -> Dictionary:
 			continue
 		state.cell_stable_counters[cell_id] = mini(
 			state.cell_stable_counters[cell_id] + 1,
-			STABLE_TICKS_TO_SLEEP
+			Tuning.VALUES.sleep_threshold_processed_ticks
 		)
-		if state.cell_stable_counters[cell_id] >= STABLE_TICKS_TO_SLEEP:
+		if state.cell_stable_counters[cell_id] \
+				>= Tuning.VALUES.sleep_threshold_processed_ticks:
 			sleeping.append(cell_id)
 
 	var reschedule: Array = []
@@ -103,7 +103,8 @@ static func step(state: Dictionary, context: Dictionary) -> Dictionary:
 			reschedule.append(cell_id)
 	for cell_id in selected:
 		if state.settled_cells[cell_id] > 0 \
-				and state.cell_stable_counters[cell_id] < STABLE_TICKS_TO_SLEEP:
+				and state.cell_stable_counters[cell_id] \
+				< Tuning.VALUES.sleep_threshold_processed_ticks:
 			reschedule.append(cell_id)
 	reschedule.append_array(wake_ids)
 	activate_cells(state, reschedule)

@@ -5,18 +5,18 @@ const ReplaySource := preload("res://better_spewing/replay/replay_command_source
 const Runner := preload("res://better_spewing/runner/authoritative_runner.gd")
 const Fixture := preload("res://better_spewing/tests/p2a_fixture_factory.gd")
 
-const EXPECTED_REPLAY_SHA256 := "b6d07e62c4de520d7be19bb4a5c627bcb5687a67b7ef251c8130263c68e6d746"
+const EXPECTED_REPLAY_SHA256 := "bd731435f464ef66c46f1fc01d5fd1f0ed4dc1fb516e37f04438b0f6426a14ae"
 const EXPECTED_CHECKPOINTS: Array[String] = [
-	"15ae9f664b69de0615a81754c5130297750ac1b8086434cd4bdb2263972e95db",
-	"1e4ee502857d08b797112440f3a6b8fe70f46f468a270f345df52b13bfd1b4ae",
-	"a6dbd003972cb93cb711cba9b2835d70a5ba9160dfd962a4d8434c864bc5440c",
-	"1de00f46b43a4e6268ed4c67b20abb529ab33173db676941cc6a31be92e061ca",
-	"e95671f127fc1f6ad10617d34b3992f1afe1e60d1642175ff04d496e7ba0ae69",
-	"2b6c1787627eeba9471016be4fff320b1515de29e302d8b51856467c593317b5",
-	"e44fa05320c15e02cfeb52b1b5530a0f5d41f571b7e5ebbe0ba873c0fe4f1acc",
-	"02c6e7eb28b7feebc7f136f5434ab714b72cc7ca2f60912101fff9f9037b0d71",
+	"e8aa0c3d7b1bf25764beb04e6924c68cc077d4b720b1b4a5973b8df0fb9c2159",
+	"e40c868e79284f8cab090fac9e93cbe3b6c933d12cfc9fcc16c1f0df603c823c",
+	"a3bba464460b3a6314f4689866116397fb6951d6147c7b88efa3da01d157e7f2",
+	"bb98ce4b8eca4a77737e2867a6908d799ccf319f54279d94b1ccaaee5baa7aa5",
+	"bf3e53ad25844b93b763900069f6f3f6bf50bc57bdeddc4b4842a554941d5965",
+	"d6269cf7e20443ab23d1c927bc40d041f90778ec9cde533e6cdf582a887ca8cd",
+	"e9df80c200082dbd42156b799339168ad55238409591bf821f571cedc274c6b3",
+	"144db0570d55689d6124d1702e5d58c69e8ca83fabd69a286f8e9ef57ba97bb2",
 ]
-const EXPECTED_FINAL_SHA256 := "02c6e7eb28b7feebc7f136f5434ab714b72cc7ca2f60912101fff9f9037b0d71"
+const EXPECTED_FINAL_SHA256 := "144db0570d55689d6124d1702e5d58c69e8ca83fabd69a286f8e9ef57ba97bb2"
 
 
 func _init() -> void:

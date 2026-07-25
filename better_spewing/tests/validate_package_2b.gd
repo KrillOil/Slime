@@ -101,7 +101,7 @@ func _test_vertical_snapshot_and_claim() -> void:
 	_reconcile(state)
 	Flow.activate_cells(state, [upper, lower])
 	var result := Flow.step(state, room)
-	_check(result.ok and state.settled_cells[upper] == 0 and state.settled_cells[lower] == 8 and state.settled_cells[_id(10, 12)] == 4, "Phase A uses tick-start snapshot and simultaneous 12q deltas")
+	_check(result.ok and state.settled_cells[upper] == 0 and state.settled_cells[lower] == 8 and state.settled_cells[_id(10, 12)] == 4, "Phase A uses tick-start snapshot and simultaneous deltas")
 	_check(result.phase_a_moves[0].source == lower and result.phase_a_moves[1].source == upper, "vertical processing is descending y then ascending x")
 	_check(result.phase_a_claimed == [_id(10, 11), _id(10, 12)], "vertical targets are explicitly and deterministically claimed")
 	_check(_invariants(state), "vertical fall preserves capacity, SETTLED, and total ledger")
@@ -109,6 +109,20 @@ func _test_vertical_snapshot_and_claim() -> void:
 	result.phase_a_moves.clear()
 	result.changed.clear()
 	_check(Serializer.state_hash(state) == state_hash, "flow diagnostics are derived copies and cannot mutate authority")
+	var cap_state := _state()
+	var cap_source := _id(20, 10)
+	var cap_target := _id(20, 11)
+	cap_state.settled_cells[cap_source] = 16
+	_reconcile(cap_state)
+	Flow.activate_cells(cap_state, [cap_source])
+	var cap_result := Flow.step(cap_state, room)
+	_check(
+		cap_result.ok
+		and cap_state.settled_cells[cap_source] == 0
+		and cap_state.settled_cells[cap_target] == 16
+		and cap_result.phase_a_moves[0].amount_q == 16,
+		"Phase A transfers the canonical 16q cap when source and free capacity permit"
+	)
 
 
 func _test_lateral_snapshot_support_and_parity() -> void:

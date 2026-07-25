@@ -15,7 +15,7 @@ const ReplayFixture := preload("res://better_spewing/tests/p1d_fixture_factory.g
 const FP := 256
 const LOCKED_ROOM_SHA256 := "4ab4655b82ab6d74a8dbf81756c7345a60d31d50d58e4f37921cd238b5d24954"
 const LOCKED_OCCUPANCY_SHA256 := "035e1954be68bf89aeec86fceea7f801d4510574941083140e5fad3ce74dcaf8"
-const LOCKED_TUNING_SHA256 := "d8c1a98010b611489e68f6733f121648c92dc2a151cf35ae6ad99b9d62356a7f"
+const LOCKED_TUNING_SHA256 := "f8a3c2e7a071b5b088da2bc1a32edeae7a7fe9dacd7e0d661457603a6f88bc65"
 
 var passed := 0
 var failed := 0
