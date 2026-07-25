@@ -1,0 +1,10 @@
+# Godot-generated state
+.godot/
+.godot-user/
+
+# Generated builds and validation captures
+build/
+captures/
+
+# Local export credentials
+export_credentials.cfg
