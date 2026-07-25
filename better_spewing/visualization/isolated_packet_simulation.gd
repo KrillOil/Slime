@@ -5,6 +5,7 @@ const Schema := preload("res://better_spewing/contracts/canonical_state_schema.g
 const Serializer := preload("res://better_spewing/contracts/canonical_serializer.gd")
 const MouthDerivation := preload("res://better_spewing/runner/mouth_derivation.gd")
 const Runner := preload("res://better_spewing/runner/authoritative_runner.gd")
+const RoomOccupancy := preload("res://better_spewing/collision/room_occupancy.gd")
 
 var runner: RefCounted
 var authoritative_snapshots: Array = []
@@ -17,8 +18,20 @@ func _ready() -> void:
 	state.ledger.reserve = 1600
 	state.player.position_x_fp = 120 * 256
 	state.player.position_y_fp = 180 * 256
-	runner = Runner.new(state)
-	for action in [Contracts.GooAction.SPEW, Contracts.GooAction.NONE, Contracts.GooAction.NONE]:
+	var room := RoomOccupancy.build({
+		"identifier": "package-1d-visualization",
+		"solids": [Rect2(200.0, 0.0, 10.0, 540.0)],
+	})
+	runner = Runner.new(state, room)
+	for action in [
+		Contracts.GooAction.SPEW,
+		Contracts.GooAction.NONE,
+		Contracts.GooAction.NONE,
+		Contracts.GooAction.NONE,
+		Contracts.GooAction.NONE,
+		Contracts.GooAction.NONE,
+		Contracts.GooAction.NONE,
+	]:
 		var mouth := MouthDerivation.derive(runner.state.player)
 		var result: Dictionary = runner.step_frame({
 			"tick": runner.state.tick,

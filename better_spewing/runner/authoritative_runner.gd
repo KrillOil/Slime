@@ -14,12 +14,15 @@ var state: Dictionary
 var scheduler_units := 0
 var checkpoint_hashes: Array[String] = []
 var simulation: RefCounted
+var initialization_error := ""
 
 
-func _init(initial_state: Dictionary = {}) -> void:
+func _init(initial_state: Dictionary = {}, collision_context: Dictionary = {}) -> void:
 	state = Schema.default_state() if initial_state.is_empty() else initial_state.duplicate(true)
 	var table := AimTable.load_checked()
 	simulation = GooSimulation.new(table.entries if table.ok else [])
+	if not collision_context.is_empty():
+		initialization_error = simulation.configure_room(state, collision_context)
 
 
 func step_from_source(source: Variant) -> Dictionary:
@@ -30,6 +33,8 @@ func step_from_source(source: Variant) -> Dictionary:
 
 
 func step_frame(frame: Dictionary) -> Dictionary:
+	if not initialization_error.is_empty():
+		return {"ok": false, "error": initialization_error, "hash": Serializer.state_hash(state)}
 	var error := Contracts.validate_command_frame(frame)
 	if not error.is_empty():
 		return {"ok": false, "error": error, "hash": ""}
@@ -55,6 +60,8 @@ func step_frame(frame: Dictionary) -> Dictionary:
 	state.command_sampler.last_valid_aim = frame.aim_angle
 	state.command_sampler.facing = state.player.facing
 	var simulation_result: Dictionary = simulation.step(state, frame)
+	if not simulation_result.get("ok", true):
+		return {"ok": false, "error": simulation_result.error, "hash": Serializer.state_hash(state), "simulation": simulation_result}
 	state.tick += 1
 	var hash := Serializer.state_hash(state)
 	if hash.is_empty():

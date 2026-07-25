@@ -56,6 +56,9 @@ static func serialize_state_checked(state: Variant) -> Dictionary:
 		_append_u32(bytes, packet.id)
 		_append_u32(bytes, packet.emission_tick)
 		_append_u16(bytes, packet.aim_angle)
+		_append_u32(bytes, packet.impact_cell_id)
+		_append_i8(bytes, packet.impact_normal_x)
+		_append_i8(bytes, packet.impact_normal_y)
 		_append_i32(bytes, packet.position_x_fp)
 		_append_i32(bytes, packet.position_y_fp)
 		_append_i32(bytes, packet.velocity_x_fp_per_s)
@@ -207,7 +210,7 @@ static func _validate_packets(value: Variant) -> String:
 	if typeof(value) != TYPE_ARRAY:
 		return "packets must be an Array"
 	var previous_id := 0
-	var fields := ["id", "emission_tick", "aim_angle", "position_x_fp", "position_y_fp", "velocity_x_fp_per_s", "velocity_y_fp_per_s", "volume_q", "lifetime_ticks", "lifecycle", "suction_reserved", "stationary_ticks", "position_x_remainder", "position_y_remainder", "gravity_remainder"]
+	var fields := ["id", "emission_tick", "aim_angle", "impact_cell_id", "impact_normal_x", "impact_normal_y", "position_x_fp", "position_y_fp", "velocity_x_fp_per_s", "velocity_y_fp_per_s", "volume_q", "lifetime_ticks", "lifecycle", "suction_reserved", "stationary_ticks", "position_x_remainder", "position_y_remainder", "gravity_remainder"]
 	for packet in value:
 		var field_error := _validate_exact_fields(packet, fields, "packet")
 		if not field_error.is_empty():
@@ -219,6 +222,20 @@ static func _validate_packets(value: Variant) -> String:
 			return "packet emission_tick must be uint32"
 		if not _is_uint(packet.aim_angle, 16) or packet.aim_angle > 4095:
 			return "packet aim_angle must be 12-bit"
+		if not _is_uint(packet.impact_cell_id, 32):
+			return "packet impact_cell_id must be uint32"
+		for field in ["impact_normal_x", "impact_normal_y"]:
+			if not _is_int_range(packet[field], -1, 1):
+				return "packet %s must be -1, 0, or 1" % field
+		var normal_axis_count: int = absi(packet.impact_normal_x) + absi(packet.impact_normal_y)
+		if packet.impact_cell_id == Contracts.NO_IMPACT_CELL_ID:
+			if normal_axis_count != 0:
+				return "no-impact packet must have zero contact normal"
+		else:
+			if packet.impact_cell_id >= Tuning.VALUES.grid_width_cells * Tuning.VALUES.grid_height_cells:
+				return "packet impact_cell_id is outside canonical grid"
+			if normal_axis_count != 1:
+				return "impact packet must have one axis-aligned contact normal"
 		for field in ["position_x_fp", "position_y_fp", "velocity_x_fp_per_s", "velocity_y_fp_per_s", "position_x_remainder", "position_y_remainder", "gravity_remainder"]:
 			if not _is_int32(packet[field]):
 				return "packet %s must be int32" % field

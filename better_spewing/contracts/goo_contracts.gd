@@ -1,10 +1,11 @@
 extends RefCounted
 
 const CONTRACT_VERSION := 1
-const SERIALIZATION_SCHEMA_VERSION := 2
+const SERIALIZATION_SCHEMA_VERSION := 3
 const INVALID_STABLE_ID := 0
 const FIRST_STABLE_ID := 1
 const MAX_STABLE_ID := 0xffffffff
+const NO_IMPACT_CELL_ID := 0xffffffff
 
 const LEDGER_CATEGORIES := [
 	"reserve",

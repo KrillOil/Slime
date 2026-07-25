@@ -340,8 +340,8 @@ func _test_replay_and_schema() -> void:
 	var reencoded := ReplayCodec.encode(decoded.header, decoded.frames) if decoded.ok else {"ok": false, "bytes": PackedByteArray()}
 	_check(encoded.ok and decoded.ok and reencoded.ok and reencoded.bytes == encoded.bytes, "Package 1C replay commands retain exact byte round-trip")
 	var old := Schema.default_state()
-	old.schema_version = 1
-	_check(not Serializer.serialize_state_checked(old).ok, "canonical serializer rejects pre-1C schema version 1")
+	old.schema_version = 2
+	_check(not Serializer.serialize_state_checked(old).ok, "canonical serializer rejects pre-1D schema version 2")
 	_check(Schema.FIELD_ORDER.has("packet.emission_tick:u32") and Schema.FIELD_ORDER.has("packet.aim_angle:u16"), "schema declares serialized coalescing tick and aim")
 	var packet_state := Schema.default_state()
 	packet_state.ledger.initial = 1
@@ -367,7 +367,7 @@ func _test_visualization_scene() -> void:
 	var visualizer: Node = instance.get_node("PacketVisualizer") if instance != null else null
 	var sequence_ok: bool = (
 		instance != null
-		and instance.authoritative_snapshots.size() == 3
+		and instance.authoritative_snapshots.size() >= 3
 		and not instance.authoritative_snapshots[0].is_empty()
 		and instance.authoritative_snapshots[0][0].position_x_fp
 			!= instance.authoritative_snapshots[1][0].position_x_fp
@@ -398,6 +398,9 @@ func _packet(id: int, volume_q: int) -> Dictionary:
 		"id": id,
 		"emission_tick": 0,
 		"aim_angle": 0,
+		"impact_cell_id": Contracts.NO_IMPACT_CELL_ID,
+		"impact_normal_x": 0,
+		"impact_normal_y": 0,
 		"position_x_fp": 0,
 		"position_y_fp": 0,
 		"velocity_x_fp_per_s": 0,

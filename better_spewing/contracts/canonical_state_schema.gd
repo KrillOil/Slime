@@ -2,7 +2,7 @@ extends RefCounted
 
 const Contracts := preload("res://better_spewing/contracts/goo_contracts.gd")
 
-const SCHEMA_VERSION := 2
+const SCHEMA_VERSION := 3
 const HASH_BYTE_COUNT := 32
 
 # The order in this descriptor is the serialized byte order. Array entry
@@ -21,6 +21,9 @@ const FIELD_ORDER := [
 	"packet.id:u32",
 	"packet.emission_tick:u32",
 	"packet.aim_angle:u16",
+	"packet.impact_cell_id:u32",
+	"packet.impact_normal_x:i8",
+	"packet.impact_normal_y:i8",
 	"packet.position_x_fp:i32",
 	"packet.position_y_fp:i32",
 	"packet.velocity_x_fp_per_s:i32",
@@ -118,7 +121,7 @@ const SECTION_9_3_AUDIT := {
 	"active_fifo_membership_and_counters": ["active_queue", "active_membership", "cell_stable_counters"],
 	"all_next_stable_ids": ["next_ids.packet", "next_ids.suction_job", "next_ids.drain_record", "next_ids.recovery_record"],
 	"all_fixed_point_remainders": ["remainders", "packet.position_x_remainder", "packet.position_y_remainder", "packet.gravity_remainder"],
-	"packet_future_state": ["packet.emission_tick", "packet.aim_angle", "packet.position_x_fp", "packet.position_y_fp", "packet.velocity_x_fp_per_s", "packet.velocity_y_fp_per_s", "packet.lifetime_ticks", "packet.lifecycle", "packet.stationary_ticks"],
+	"packet_future_state": ["packet.emission_tick", "packet.aim_angle", "packet.impact_cell_id", "packet.impact_normal_x", "packet.impact_normal_y", "packet.position_x_fp", "packet.position_y_fp", "packet.velocity_x_fp_per_s", "packet.velocity_y_fp_per_s", "packet.lifetime_ticks", "packet.lifecycle", "packet.stationary_ticks"],
 	"player_transform_velocity_grounded_movement": ["player.position_x_fp", "player.position_y_fp", "player.velocity_x_fp_per_s", "player.velocity_y_fp_per_s", "player.grounded", "player.movement_state"],
 	"player_immersion_and_recoil": ["player.immersion_state", "player.submerged_numerator", "player.immersion_samples", "player.recoil_x_fp_per_s", "player.recoil_y_fp_per_s"],
 	"immersion_hysteresis_counters": ["player.swim_entry_counter", "player.swim_exit_counter"],
@@ -220,6 +223,9 @@ static func default_packet() -> Dictionary:
 		"id": Contracts.FIRST_STABLE_ID,
 		"emission_tick": 0,
 		"aim_angle": 0,
+		"impact_cell_id": Contracts.NO_IMPACT_CELL_ID,
+		"impact_normal_x": 0,
+		"impact_normal_y": 0,
 		"position_x_fp": 0,
 		"position_y_fp": 0,
 		"velocity_x_fp_per_s": 0,
